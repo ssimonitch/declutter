@@ -3,10 +3,10 @@
 ## Project Setup
 - [x] Create Next.js project with TypeScript, Tailwind, App Router
 - [x] Install all required dependencies
-- [ ] Set up folder structure according to spec
+- [x] Set up folder structure according to spec
 - [x] Create .env.local file with GEMINI_API_KEY placeholder
-- [ ] Configure Tailwind CSS
-- [ ] Set up TypeScript types file (lib/types.ts)
+- [x] Configure Tailwind CSS
+- [x] Set up TypeScript types file (lib/types.ts)
 
 ## Database & Storage Layer
 - [ ] Create Dexie database schema (lib/db.ts)
