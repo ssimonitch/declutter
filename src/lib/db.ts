@@ -77,8 +77,11 @@ export async function updateItem(
   try {
     // Sanitize updates to prevent overwriting immutable fields
     const {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       id: _ignoreId,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       createdAt: _ignoreCreatedAt,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       updatedAt: _ignoreUpdatedAt,
       ...safeUpdates
     } = updates;

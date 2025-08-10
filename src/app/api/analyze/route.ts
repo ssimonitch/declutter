@@ -2,20 +2,21 @@
 // Processes uploaded images and returns structured item metadata
 
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeItemImage } from "@/lib/gemini";
-import { convertBlobToBase64 } from "@/lib/image-utils";
+import { analyzeItemImage, testGeminiConnection } from "@/lib/gemini";
 import type { AnalyzeApiResponse } from "@/lib/types";
 
 // Maximum file size for uploads (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-// Supported image MIME types
+// Supported image MIME types (unified across the app)
 const SUPPORTED_MIME_TYPES = [
   "image/jpeg",
   "image/jpg",
   "image/png",
   "image/webp",
 ];
+
+const isProduction = process.env.NODE_ENV === "production";
 
 /**
  * POST /api/analyze
@@ -88,11 +89,10 @@ export async function POST(
       );
     }
 
-    // Convert File to Blob and then to base64
-    const blob = new Blob([await imageFile.arrayBuffer()], {
-      type: imageFile.type,
-    });
-    const base64Image = await convertBlobToBase64(blob);
+    // Convert image to base64 using Node.js Buffer (server-side)
+    const arrayBuffer = await imageFile.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const base64Image = `data:${imageFile.type};base64,${base64}`;
 
     // Prepare analysis options
     const analysisOptions = {
@@ -101,16 +101,20 @@ export async function POST(
     };
 
     // Analyze image with Gemini AI
-    console.log(
-      `Analyzing image: ${imageFile.name} (${imageFile.size} bytes) with precision mode: ${precisionMode}`,
-    );
+    if (!isProduction) {
+      console.log(
+        `Analyzing image: ${imageFile.name} (${imageFile.size} bytes) with precision mode: ${precisionMode}`,
+      );
+    }
 
     const analysisResult = await analyzeItemImage(base64Image, analysisOptions);
 
     // Log successful analysis
-    console.log(
-      `Analysis completed for ${imageFile.name}: ${analysisResult.name} (${analysisResult.category})`,
-    );
+    if (!isProduction) {
+      console.log(
+        `Analysis completed for ${imageFile.name}: ${analysisResult.name} (${analysisResult.category})`,
+      );
+    }
 
     // Return structured response
     return NextResponse.json(
@@ -218,12 +222,14 @@ export async function POST(
 export async function GET(): Promise<NextResponse> {
   try {
     const isConfigured = Boolean(process.env.GEMINI_API_KEY);
+    const geminiConnected = isConfigured ? await testGeminiConnection() : false;
 
     return NextResponse.json(
       {
         status: "ok",
         service: "Image Analysis API",
         configured: isConfigured,
+        geminiConnected,
         supportedFormats: SUPPORTED_MIME_TYPES,
         maxFileSizeMB: MAX_FILE_SIZE / (1024 * 1024),
         timestamp: new Date().toISOString(),
@@ -245,15 +251,16 @@ export async function GET(): Promise<NextResponse> {
 
 /**
  * OPTIONS /api/analyze
- * Handle preflight requests for CORS
+ * Handle preflight requests for CORS (restricted to same-origin for MVP)
  */
 export async function OPTIONS(): Promise<NextResponse> {
+  const origin = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   return new NextResponse(null, {
     status: 200,
     headers: {
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Headers": "Content-Type",
       "Access-Control-Max-Age": "86400",
     },
   });
@@ -262,8 +269,3 @@ export async function OPTIONS(): Promise<NextResponse> {
 // Export route configuration
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-// Helper function to validate request content type
-function isValidContentType(contentType: string | null): boolean {
-  return contentType?.startsWith("multipart/form-data") ?? false;
-}

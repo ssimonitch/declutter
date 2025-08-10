@@ -14,10 +14,10 @@ Successfully implemented complete Gemini API integration for the Declutter App M
 
 | Component       | Purpose                 | Details                                                                   |
 | --------------- | ----------------------- | ------------------------------------------------------------------------- |
-| Model Selection | Cost-optimized AI usage | Default: `gemini-2.0-flash-latest`<br>Precision: `gemini-2.0-flash`       |
+| Model Selection | Cost-optimized AI usage | Default: `gemini-2.5-flash-lite`<br>Precision: `gemini-2.5-flash`         |
 | System Prompt   | Japanese market context | Comprehensive prompt in Japanese covering pricing, disposal, marketplaces |
 | Response Schema | Structured output       | Enforces DeclutterItem interface with strict typing                       |
-| Error Handling  | Robust failures         | Retry logic, rate limiting, detailed error messages                       |
+| Error Handling  | Robust failures         | Comprehensive error handling with user-friendly messages; light retry/backoff on transient errors |
 
 #### Core Functions
 
@@ -109,10 +109,9 @@ Successfully implemented complete Gemini API integration for the Declutter App M
 ### Performance Optimizations
 
 - Singleton client instance
-- Efficient base64 conversion
-- Streaming support for large images
+- Efficient base64 conversion using Node.js Buffer
 - Proper memory management
-- Response caching headers
+- Minimal latency with direct API calls
 
 ### Security Features
 

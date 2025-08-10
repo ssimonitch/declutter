@@ -9,8 +9,8 @@ import {
 import type { DeclutterItem } from "./types";
 
 // Model configuration
-const DEFAULT_MODEL = "gemini-2.0-flash-latest";
-const PRECISION_MODEL = "gemini-2.0-flash";
+const DEFAULT_MODEL = "gemini-2.5-flash-lite";
+const PRECISION_MODEL = "gemini-2.5-flash";
 
 // Japanese market system prompt for item analysis
 const JAPANESE_SYSTEM_PROMPT = `あなたは日本の中古市場に詳しいアシスタントです。入力画像から商品の詳細を分析し、以下の情報を提供してください：
@@ -217,25 +217,55 @@ class GeminiClient {
         },
       };
 
-      // Generate content with structured output
-      const result = await model.generateContent({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: "画像を分析して、指定されたJSON形式で商品情報を返してください。",
-              },
-              imagePart,
-            ],
+      // Generate content with structured output (with simple retry/backoff)
+      const generateOnce = async () =>
+        model.generateContent({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: "画像を分析して、指定されたJSON形式で商品情報を返してください。",
+                },
+                imagePart,
+              ],
+            },
+          ],
+          generationConfig: {
+            ...this.config.generationConfig,
+            responseMimeType: "application/json",
+            responseSchema: RESPONSE_SCHEMA,
           },
-        ],
-        generationConfig: {
-          ...this.config.generationConfig,
-          responseMimeType: "application/json",
-          responseSchema: RESPONSE_SCHEMA,
-        },
-      });
+        });
+
+      const maxAttempts = 3;
+      let attempt = 0;
+      let lastError: unknown = null;
+      let result: Awaited<ReturnType<typeof generateOnce>> | null = null;
+      while (attempt < maxAttempts) {
+        try {
+          result = await generateOnce();
+          break;
+        } catch (err) {
+          lastError = err;
+          const message = err instanceof Error ? err.message.toLowerCase() : "";
+          // Retry on transient/rate/timeout conditions
+          const shouldRetry =
+            message.includes("quota") ||
+            message.includes("rate") ||
+            message.includes("timeout") ||
+            message.includes("temporar");
+          if (!shouldRetry) break;
+          const backoffMs = 250 * Math.pow(2, attempt); // 250ms, 500ms, 1000ms
+          await new Promise((r) => setTimeout(r, backoffMs));
+          attempt += 1;
+        }
+      }
+      if (!result) {
+        throw lastError instanceof Error
+          ? lastError
+          : new Error("Gemini request failed");
+      }
 
       const response = result.response;
       const text = response.text();
@@ -445,7 +475,7 @@ export const GEMINI_CONSTANTS = {
   SUPPORTED_IMAGE_TYPES: ["image/jpeg", "image/png", "image/webp"],
   MAX_IMAGE_SIZE_MB: 10,
   ESTIMATED_COST_PER_ANALYSIS: {
-    standard: 0.01, // USD for Flash-Lite
-    precision: 0.03, // USD for Flash
+    standard: 0.003, // ~$0.002-0.004 USD per item for Flash-Lite
+    precision: 0.04, // ~$0.03-0.05 USD per item for Flash
   },
 } as const;

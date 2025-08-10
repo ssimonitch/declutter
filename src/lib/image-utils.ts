@@ -4,7 +4,7 @@
 import imageCompression from "browser-image-compression";
 import type { ImageQuality, StorageQuota } from "./types";
 
-// Supported image MIME types
+// Supported image MIME types (unified across the app)
 const SUPPORTED_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
