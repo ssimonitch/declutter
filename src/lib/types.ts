@@ -75,9 +75,22 @@ export function revokeBlobUrl(url: string): void {
 
 // Municipality data structure for disposal information
 export interface Municipality {
-  name: string;
+  code: string; // Unique municipality code
+  name: string; // English name
+  nameJapanese: string; // Japanese name
   sodaiGomiUrl?: string; // Link to oversized waste disposal info
   kadenRecycleUrl?: string; // Link to appliance recycling info
+  generalWasteUrl?: string; // General waste disposal info
+  notes?: string; // Municipality-specific disposal notes
+}
+
+// Category-specific disposal information
+export interface DisposalInfo {
+  municipalityCode: string;
+  category: string;
+  urls: string[];
+  notes?: string;
+  estimatedFee?: number; // JPY
 }
 
 // Storage quota information

@@ -76,49 +76,49 @@ interface ItemFormProps {
   className?: string;
 }
 
-// Condition options with Japanese labels
+// 商品状態の選択肢（高齢者にも分かりやすく）
 const conditionOptions = [
-  { value: "new", label: "新品", description: "未使用・新品" },
-  { value: "like_new", label: "新品同様", description: "ほぼ未使用" },
-  { value: "good", label: "良好", description: "軽い使用感あり" },
-  { value: "fair", label: "可", description: "使用感や軽微なキズあり" },
-  { value: "poor", label: "要修理", description: "故障や大きなダメージあり" },
+  { value: "new", label: "新品", description: "購入後未使用、タグ付き" },
+  { value: "like_new", label: "ほぼ新品", description: "数回しか使っていない" },
+  { value: "good", label: "良い", description: "普通に使える、小さな傷程度" },
+  { value: "fair", label: "普通", description: "使用感あり、傷や汚れあり" },
+  { value: "poor", label: "難あり", description: "壊れている、修理が必要" },
 ] as const;
 
-// Action options with Japanese labels and icons
+// おすすめアクションの選択肢
 const actionOptions = [
   {
     value: "keep",
-    label: "保管",
-    description: "手元に残す",
+    label: "保管する",
+    description: "今後も使うので残す",
     icon: "🏠",
     color: "bg-blue-100 text-blue-800 border-blue-200",
   },
   {
     value: "online",
-    label: "オンライン販売",
-    description: "メルカリ・ヤフオク等",
+    label: "フリマで売る",
+    description: "メルカリやヤフオクで販売",
     icon: "💰",
     color: "bg-green-100 text-green-800 border-green-200",
   },
   {
     value: "thrift",
-    label: "リサイクルショップ",
-    description: "実店舗で販売",
+    label: "リサイクル店へ",
+    description: "近くのお店に持ち込み",
     icon: "🏪",
     color: "bg-yellow-100 text-yellow-800 border-yellow-200",
   },
   {
     value: "donate",
-    label: "寄付",
-    description: "NPO・福祉施設等",
+    label: "寄付する",
+    description: "困っている人に役立てる",
     icon: "❤️",
     color: "bg-purple-100 text-purple-800 border-purple-200",
   },
   {
     value: "trash",
-    label: "廃棄",
-    description: "ゴミとして処分",
+    label: "処分する",
+    description: "ごみとして捨てる",
     icon: "🗑️",
     color: "bg-red-100 text-red-800 border-red-200",
   },
@@ -215,12 +215,12 @@ export default function ItemForm({
     try {
       let itemId: string;
 
-      if (item) {
-        // Update existing item
+      if (item && item.id !== "new") {
+        // Update existing item (id exists and is not "new")
         await updateItem(item.id, data);
         itemId = item.id;
       } else {
-        // Create new item
+        // Create new item (no item or id is "new")
         itemId = await addItem(data);
       }
 
@@ -545,12 +545,15 @@ export default function ItemForm({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             推奨理由
+            <span className="text-xs text-gray-500 ml-2 font-normal">
+              （なぜこの方法が良いか）
+            </span>
           </label>
           <textarea
             {...register("actionRationale")}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            placeholder="なぜこのアクションを推奨するかの理由"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-base"
+            placeholder="例：まだ使える状態なのでメルカリで売れそうです"
           />
           {errors.actionRationale && (
             <p className="mt-1 text-sm text-red-600">

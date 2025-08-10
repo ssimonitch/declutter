@@ -138,20 +138,24 @@ export default function ItemsTable({
         items = await listItems();
       }
 
-      // Clean up previous image URLs
-      imageUrls.forEach((url) => {
-        revokeBlobUrl(url);
+      // Clean up previous image URLs and create new ones
+      setImageUrls((prevUrls) => {
+        // Clean up previous URLs
+        prevUrls.forEach((url) => {
+          revokeBlobUrl(url);
+        });
+
+        // Create new image URLs for thumbnails
+        const newImageUrls = new Map<string, string>();
+        items.forEach((item) => {
+          if (item.thumbnail) {
+            newImageUrls.set(item.id, createBlobUrl(item.thumbnail));
+          }
+        });
+
+        return newImageUrls;
       });
 
-      // Create new image URLs for thumbnails
-      const newImageUrls = new Map<string, string>();
-      items.forEach((item) => {
-        if (item.thumbnail) {
-          newImageUrls.set(item.id, createBlobUrl(item.thumbnail));
-        }
-      });
-
-      setImageUrls(newImageUrls);
       setData(items);
     } catch (err) {
       console.error("Failed to load items:", err);
@@ -159,7 +163,7 @@ export default function ItemsTable({
     } finally {
       setLoading(false);
     }
-  }, [debouncedGlobalFilter, actionFilter, categoryFilter, imageUrls]);
+  }, [debouncedGlobalFilter, actionFilter, categoryFilter]);
 
   // Load data
   useEffect(() => {
@@ -286,7 +290,8 @@ export default function ItemsTable({
           return (
             <div className="text-sm">
               <div className="font-medium">
-                ¥{price.low.toLocaleString()} - ¥{price.high.toLocaleString()}
+                ¥{price.low.toLocaleString("ja-JP")} - ¥
+                {price.high.toLocaleString("ja-JP")}
               </div>
               <div className={`text-xs ${confidenceColor}`}>
                 信頼度: {Math.round(price.confidence * 100)}%
@@ -467,8 +472,8 @@ export default function ItemsTable({
             <div className="flex items-center justify-between mt-2">
               <div className="text-xs">
                 <div className="font-medium">
-                  ¥{item.estimatedPriceJPY.low.toLocaleString()} - ¥
-                  {item.estimatedPriceJPY.high.toLocaleString()}
+                  ¥{item.estimatedPriceJPY.low.toLocaleString("ja-JP")} - ¥
+                  {item.estimatedPriceJPY.high.toLocaleString("ja-JP")}
                 </div>
                 <div
                   className={`${

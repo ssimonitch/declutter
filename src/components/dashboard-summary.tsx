@@ -159,7 +159,7 @@ export default function DashboardSummary({
         {/* Resale Value */}
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="text-lg font-bold text-green-600">
-            ¥{summary.estimatedResaleValue.low.toLocaleString()}
+            ¥{summary.estimatedResaleValue.low.toLocaleString("ja-JP")}
           </div>
           <div className="text-sm text-gray-500">推定売上（最低）</div>
         </div>
@@ -167,7 +167,7 @@ export default function DashboardSummary({
         {/* Disposal Cost */}
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="text-lg font-bold text-red-600">
-            ¥{summary.estimatedDisposalCost.toLocaleString()}
+            ¥{summary.estimatedDisposalCost.toLocaleString("ja-JP")}
           </div>
           <div className="text-sm text-gray-500">処分費用</div>
         </div>
@@ -267,11 +267,11 @@ export default function DashboardSummary({
           <div className="text-center">
             <div className="text-sm text-gray-500 mb-1">推定売上範囲</div>
             <div className="text-xl font-bold text-green-600">
-              ¥{summary.estimatedResaleValue.low.toLocaleString()}
+              ¥{summary.estimatedResaleValue.low.toLocaleString("ja-JP")}
             </div>
             <div className="text-sm text-gray-400">〜</div>
             <div className="text-xl font-bold text-green-600">
-              ¥{summary.estimatedResaleValue.high.toLocaleString()}
+              ¥{summary.estimatedResaleValue.high.toLocaleString("ja-JP")}
             </div>
           </div>
 
@@ -284,7 +284,7 @@ export default function DashboardSummary({
                 0,
                 summary.estimatedResaleValue.low -
                   summary.estimatedDisposalCost,
-              ).toLocaleString()}
+              ).toLocaleString("ja-JP")}
             </div>
             <div className="text-xs text-gray-400 mt-1">売上 - 処分費用</div>
           </div>
@@ -311,7 +311,7 @@ export default function DashboardSummary({
                       summary.estimatedResaleValue.high) /
                       2 /
                       resaleItemsCount,
-                  ).toLocaleString()
+                  ).toLocaleString("ja-JP")
                 : "0"}
             </div>
             <div className="text-xs text-gray-400 mt-1">(中央値)</div>
@@ -390,7 +390,8 @@ export default function DashboardSummary({
               <div className="flex items-start space-x-2">
                 <span className="text-blue-600">•</span>
                 <span className="text-blue-800">
-                  処分費用が¥{summary.estimatedDisposalCost.toLocaleString()}
+                  処分費用が¥
+                  {summary.estimatedDisposalCost.toLocaleString("ja-JP")}
                   発生する予定です。自治体の回収日程を確認しておきましょう。
                 </span>
               </div>

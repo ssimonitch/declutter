@@ -80,56 +80,56 @@
 
 ### Layout (app/layout.tsx)
 
-- [ ] Create responsive navigation header
-- [ ] Add mobile hamburger menu
-- [ ] Include links to Dashboard and Add Item
-- [ ] Set up proper metadata
+- [x] Create responsive navigation header
+- [x] Add mobile hamburger menu
+- [x] Include links to Dashboard and Add Item
+- [x] Set up proper metadata
 
 ### Dashboard Page (app/dashboard/page.tsx)
 
-- [ ] Integrate dashboard summary component
-- [ ] Integrate items table component
-- [ ] Add export to CSV button
-- [ ] Handle empty state
-- [ ] Add loading states
+- [x] Integrate dashboard summary component
+- [x] Integrate items table component
+- [x] Add export to CSV button
+- [x] Handle empty state
+- [x] Add loading states
 
 ### Home Page (app/page.tsx)
 
-- [ ] Create redirect to dashboard
+- [x] Create redirect to dashboard
 
 ### Capture Page (app/capture/page.tsx)
 
-- [ ] Add municipality selector (first-time setup)
-- [ ] Integrate photo capture component
-- [ ] Handle API response
-- [ ] Navigate to edit form after analysis
-- [ ] Show error states
+- [x] Add municipality selector (first-time setup)
+- [x] Integrate photo capture component
+- [x] Handle API response
+- [x] Navigate to edit form after analysis
+- [x] Show error states
 
 ### Edit Page (app/edit/[id]/page.tsx)
 
-- [ ] Load item data from database
-- [ ] Integrate item form component
-- [ ] Handle save and redirect
-- [ ] Handle delete and redirect
-- [ ] Add back navigation
+- [x] Load item data from database
+- [x] Integrate item form component
+- [x] Handle save and redirect
+- [x] Handle delete and redirect
+- [x] Add back navigation
 
 ## Features
 
 ### CSV Export
 
-- [ ] Implement CSV generation with Papaparse
-- [ ] Add CSV injection protection
-- [ ] Include all relevant fields
-- [ ] Format dates and prices appropriately
-- [ ] Create download trigger
-- [ ] Support filtered/selected export
+- [x] Implement CSV generation with Papaparse
+- [x] Add CSV injection protection
+- [x] Include all relevant fields
+- [x] Format dates and prices appropriately
+- [x] Create download trigger
+- [x] Support filtered/selected export
 
 ### Municipality Integration
 
-- [ ] Create municipalities data structure
-- [ ] Store selected municipality in localStorage
-- [ ] Display relevant disposal links
-- [ ] Show municipality-specific notes
+- [x] Create municipalities data structure
+- [x] Store selected municipality in localStorage
+- [x] Display relevant disposal links
+- [x] Show municipality-specific notes
 
 ### Error Handling
 
