@@ -9,11 +9,11 @@
 - [x] Set up TypeScript types file (lib/types.ts)
 
 ## Database & Storage Layer
-- [ ] Create Dexie database schema (lib/db.ts)
-- [ ] Define DeclutterItem interface with all fields
-- [ ] Set up database indexes for efficient queries
-- [ ] Create database helper functions (add, update, delete, get, list)
-- [ ] Test database operations work correctly
+- [x] Create Dexie database schema (lib/db.ts)
+- [x] Define DeclutterItem interface with all fields
+- [x] Set up database indexes for efficient queries
+- [x] Create database helper functions (add, update, delete, get, list)
+- [x] Test database operations work correctly
 
 ## Image Processing Utilities
 - [ ] Create image compression functions (standard and lite modes)
