@@ -27,13 +27,13 @@
 
 ## Gemini API Integration
 
-- [ ] Set up Gemini client configuration (lib/gemini.ts)
-- [ ] Write Japanese market system prompt
-- [ ] Define response schema structure
-- [ ] Create API route (/api/analyze/route.ts)
-- [ ] Implement image-to-base64 conversion
-- [ ] Add error handling for API failures
-- [ ] Test API with sample images
+- [x] Set up Gemini client configuration (lib/gemini.ts)
+- [x] Write Japanese market system prompt
+- [x] Define response schema structure
+- [x] Create API route (/api/analyze/route.ts)
+- [x] Implement image-to-base64 conversion
+- [x] Add error handling for API failures
+- [x] Test API with sample images
 
 ## Core Components
 
