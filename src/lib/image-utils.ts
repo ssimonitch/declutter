@@ -149,15 +149,13 @@ export function createBlobUrlWithCleanup(
   timeoutMs: number = 5 * 60 * 1000, // 5 minutes default
 ): { url: string; cleanup: () => void } {
   const url = createBlobUrl(blob);
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let cleaned = false;
 
   const cleanup = () => {
     if (!cleaned) {
       revokeBlobUrl(url);
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      if (timeoutId) clearTimeout(timeoutId);
       cleaned = true;
     }
   };

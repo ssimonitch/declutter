@@ -9,7 +9,8 @@ import {
 import type { DeclutterItem } from "./types";
 
 // Model configuration
-const DEFAULT_MODEL = "gemini-2.5-flash-lite";
+// Default aligns with spec for best price/performance
+const DEFAULT_MODEL = "gemini-2.5-flash-latest";
 const PRECISION_MODEL = "gemini-2.5-flash";
 
 // Japanese market system prompt for item analysis
@@ -475,7 +476,7 @@ export const GEMINI_CONSTANTS = {
   SUPPORTED_IMAGE_TYPES: ["image/jpeg", "image/png", "image/webp"],
   MAX_IMAGE_SIZE_MB: 10,
   ESTIMATED_COST_PER_ANALYSIS: {
-    standard: 0.003, // ~$0.002-0.004 USD per item for Flash-Lite
+    standard: 0.01, // Updated estimate per spec for flash-latest (approximate)
     precision: 0.04, // ~$0.03-0.05 USD per item for Flash
   },
 } as const;

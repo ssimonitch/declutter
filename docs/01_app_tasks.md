@@ -39,42 +39,42 @@
 
 ### Photo Capture Component
 
-- [ ] Create file input with camera support
-- [ ] Add image preview functionality
-- [ ] Show compression progress indicator
-- [ ] Display storage quota warnings
-- [ ] Add quality mode toggle (Standard/Lite)
-- [ ] Handle upload errors gracefully
+- [x] Create file input with camera support
+- [x] Add image preview functionality
+- [x] Show compression progress indicator
+- [x] Display storage quota warnings
+- [x] Add quality mode toggle (Standard/Lite)
+- [x] Handle upload errors gracefully
 
 ### Item Form Component
 
-- [ ] Set up react-hook-form with Zod schema
-- [ ] Create all form fields matching data model
-- [ ] Add field validation rules
-- [ ] Implement save functionality
-- [ ] Add delete confirmation dialog
-- [ ] Display confidence scores appropriately
-- [ ] Show marketplace search queries
+- [x] Set up react-hook-form with Zod schema
+- [x] Create all form fields matching data model
+- [x] Add field validation rules
+- [x] Implement save functionality
+- [x] Add delete confirmation dialog
+- [x] Display confidence scores appropriately
+- [x] Show marketplace search queries
 
 ### Items Table Component
 
-- [ ] Set up TanStack Table
-- [ ] Configure columns (thumbnail, name, category, price, action, date)
-- [ ] Add sorting functionality
-- [ ] Add filtering by action type
-- [ ] Add filtering by category
-- [ ] Add text search functionality
-- [ ] Implement row click to edit
-- [ ] Add bulk selection for export
+- [x] Set up TanStack Table
+- [x] Configure columns (thumbnail, name, category, price, action, date)
+- [x] Add sorting functionality
+- [x] Add filtering by action type
+- [x] Add filtering by category
+- [x] Add text search functionality
+- [x] Implement row click to edit
+- [x] Add bulk selection for export
 
 ### Dashboard Summary Component
 
-- [ ] Calculate total items by action
-- [ ] Calculate estimated resale value ranges
-- [ ] Calculate average confidence scores
-- [ ] Calculate disposal costs
-- [ ] Create category breakdown
-- [ ] Format all monetary values in JPY
+- [x] Calculate total items by action
+- [x] Calculate estimated resale value ranges
+- [x] Calculate average confidence scores
+- [x] Calculate disposal costs
+- [x] Create category breakdown
+- [x] Format all monetary values in JPY
 
 ## Pages
 
