@@ -11,15 +11,36 @@ export class DeclutterDatabase extends Dexie {
 
   constructor() {
     super("DeclutterDB");
+    // Version 1 - Initial schema
     this.version(1).stores({
       // Define table with indexes for efficient querying
       items: "id, createdAt, updatedAt, recommendedAction, category, name",
     });
+
+    // Version 2 - Add compound indexes for better performance
+    this.version(2).stores({
+      items:
+        "id, createdAt, updatedAt, recommendedAction, category, name, [recommendedAction+updatedAt], [category+updatedAt]",
+    });
   }
 }
 
-// Singleton database instance
-export const db = new DeclutterDatabase();
+// Lazy database initialization for SSR safety
+let dbInstance: DeclutterDatabase | null = null;
+
+/**
+ * Get database instance with lazy initialization.
+ * Only initializes in browser environment to prevent SSR issues.
+ */
+export function getDb(): DeclutterDatabase {
+  if (!dbInstance) {
+    if (typeof window === "undefined") {
+      throw new Error("DeclutterDatabase must be used in the browser");
+    }
+    dbInstance = new DeclutterDatabase();
+  }
+  return dbInstance;
+}
 
 // CRUD Operations
 
@@ -38,7 +59,7 @@ export async function addItem(
       updatedAt: now,
     };
 
-    await db.items.add(newItem);
+    await getDb().items.add(newItem);
     return newItem.id;
   } catch (error) {
     console.error("Error adding item:", error);
@@ -54,12 +75,20 @@ export async function updateItem(
   updates: Partial<DeclutterItem>,
 ): Promise<void> {
   try {
+    // Sanitize updates to prevent overwriting immutable fields
+    const {
+      id: _ignoreId,
+      createdAt: _ignoreCreatedAt,
+      updatedAt: _ignoreUpdatedAt,
+      ...safeUpdates
+    } = updates;
+
     const updateData = {
-      ...updates,
+      ...safeUpdates,
       updatedAt: new Date().toISOString(),
     };
 
-    const updated = await db.items.update(id, updateData);
+    const updated = await getDb().items.update(id, updateData);
     if (updated === 0) {
       throw new Error("Item not found");
     }
@@ -74,7 +103,7 @@ export async function updateItem(
  */
 export async function deleteItem(id: string): Promise<void> {
   try {
-    await db.items.delete(id);
+    await getDb().items.delete(id);
   } catch (error) {
     console.error("Error deleting item:", error);
     throw new Error("Failed to delete item");
@@ -86,7 +115,7 @@ export async function deleteItem(id: string): Promise<void> {
  */
 export async function getItem(id: string): Promise<DeclutterItem | undefined> {
   try {
-    return await db.items.get(id);
+    return await getDb().items.get(id);
   } catch (error) {
     console.error("Error getting item:", error);
     throw new Error("Failed to retrieve item");
@@ -98,7 +127,7 @@ export async function getItem(id: string): Promise<DeclutterItem | undefined> {
  */
 export async function listItems(): Promise<DeclutterItem[]> {
   try {
-    return await db.items.orderBy("updatedAt").reverse().toArray();
+    return await getDb().items.orderBy("updatedAt").reverse().toArray();
   } catch (error) {
     console.error("Error listing items:", error);
     throw new Error("Failed to retrieve items");
@@ -116,8 +145,8 @@ export async function searchItems(query: string): Promise<DeclutterItem[]> {
 
     const lowerQuery = query.toLowerCase();
 
-    return await db.items
-      .filter((item) => {
+    const results = await getDb()
+      .items.filter((item) => {
         const searchableText = [
           item.name,
           item.nameJapanese || "",
@@ -131,8 +160,9 @@ export async function searchItems(query: string): Promise<DeclutterItem[]> {
 
         return searchableText.includes(lowerQuery);
       })
-      .reverse()
       .sortBy("updatedAt");
+
+    return results.reverse();
   } catch (error) {
     console.error("Error searching items:", error);
     throw new Error("Failed to search items");
@@ -146,11 +176,12 @@ export async function filterItemsByAction(
   action: string,
 ): Promise<DeclutterItem[]> {
   try {
-    return await db.items
-      .where("recommendedAction")
+    const results = await getDb()
+      .items.where("recommendedAction")
       .equals(action)
-      .reverse()
       .sortBy("updatedAt");
+
+    return results.reverse();
   } catch (error) {
     console.error("Error filtering items by action:", error);
     throw new Error("Failed to filter items by action");
@@ -164,11 +195,12 @@ export async function filterItemsByCategory(
   category: string,
 ): Promise<DeclutterItem[]> {
   try {
-    return await db.items
-      .where("category")
+    const results = await getDb()
+      .items.where("category")
       .equals(category)
-      .reverse()
       .sortBy("updatedAt");
+
+    return results.reverse();
   } catch (error) {
     console.error("Error filtering items by category:", error);
     throw new Error("Failed to filter items by category");
@@ -180,7 +212,7 @@ export async function filterItemsByCategory(
  */
 export async function clearAllItems(): Promise<void> {
   try {
-    await db.items.clear();
+    await getDb().items.clear();
   } catch (error) {
     console.error("Error clearing all items:", error);
     throw new Error("Failed to clear all items");
@@ -196,13 +228,31 @@ export async function getDatabaseStats(): Promise<{
   itemCount: number;
   storageEstimateBytes: number;
   storageEstimateMB: number;
+  quotaBytes?: number;
+  quotaMB?: number;
+  usageBytes?: number;
+  usageMB?: number;
 }> {
   try {
-    const itemCount = await db.items.count();
+    const itemCount = await getDb().items.count();
+
+    // Get browser storage quota and usage if available
+    let quotaBytes: number | undefined;
+    let usageBytes: number | undefined;
+
+    if ("storage" in navigator && "estimate" in navigator.storage) {
+      try {
+        const estimate = await navigator.storage.estimate();
+        quotaBytes = estimate.quota;
+        usageBytes = estimate.usage;
+      } catch (storageError) {
+        console.warn("Failed to get storage estimate:", storageError);
+      }
+    }
 
     // Estimate storage usage by calculating average blob sizes
     // This is an approximation since we can't directly measure IndexedDB size
-    const sampleItems = await db.items.limit(10).toArray();
+    const sampleItems = await getDb().items.limit(10).toArray();
     let avgBlobSize = 0;
 
     if (sampleItems.length > 0) {
@@ -219,6 +269,14 @@ export async function getDatabaseStats(): Promise<{
       itemCount,
       storageEstimateBytes,
       storageEstimateMB: Math.round(storageEstimateMB * 100) / 100,
+      quotaBytes,
+      quotaMB: quotaBytes
+        ? Math.round((quotaBytes / (1024 * 1024)) * 100) / 100
+        : undefined,
+      usageBytes,
+      usageMB: usageBytes
+        ? Math.round((usageBytes / (1024 * 1024)) * 100) / 100
+        : undefined,
     };
   } catch (error) {
     console.error("Error getting database stats:", error);
@@ -368,35 +426,64 @@ export async function calculateDashboardSummary(): Promise<DashboardSummary> {
 export async function checkDatabaseHealth(): Promise<{
   connected: boolean;
   version: number;
-  tableCount: number;
+  itemCount: number;
 }> {
   try {
+    const db = getDb();
     const connected = db.isOpen();
     const version = db.verno;
     const itemCount = await db.items.count();
 
+    // Simple read/write check for better diagnostics
+    try {
+      await db.transaction("rw", db.items, async () => {
+        // This is a no-op transaction just to test read/write capability
+      });
+    } catch (txError) {
+      console.warn("Database transaction test failed:", txError);
+    }
+
     return {
       connected,
       version,
-      tableCount: itemCount,
+      itemCount,
     };
   } catch (error) {
     console.error("Error checking database health:", error);
     return {
       connected: false,
       version: 0,
-      tableCount: 0,
+      itemCount: 0,
     };
   }
 }
 
 /**
  * Perform database cleanup and optimization
- * This is mainly for development/testing purposes
+ *
+ * ⚠️ WARNING: This function is destructive and will remove invalid data!
+ * It clears and rebuilds the entire items table, which may result in data loss
+ * if there are any issues during the process.
+ *
+ * This is mainly for development/testing purposes and should not be used in production.
+ *
+ * @throws {Error} If called in production environment
  */
 export async function optimizeDatabase(): Promise<void> {
+  // Safety guard - prevent running in production
+  if (
+    typeof process !== "undefined" &&
+    process.env &&
+    process.env.NODE_ENV === "production"
+  ) {
+    throw new Error(
+      "optimizeDatabase is not allowed in production environment",
+    );
+  }
+
   try {
     // Clear any orphaned or corrupt entries
+    const db = getDb();
     const items = await db.items.toArray();
     const validItems = items.filter((item) => {
       return (
@@ -410,8 +497,11 @@ export async function optimizeDatabase(): Promise<void> {
     });
 
     if (validItems.length !== items.length) {
-      await db.items.clear();
-      await db.items.bulkAdd(validItems);
+      // Use transaction for atomic clear+bulkAdd operation
+      await db.transaction("rw", db.items, async () => {
+        await db.items.clear();
+        await db.items.bulkAdd(validItems);
+      });
       console.log(
         `Cleaned up ${items.length - validItems.length} invalid items`,
       );
