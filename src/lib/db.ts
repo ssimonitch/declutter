@@ -7,6 +7,7 @@ import {
   DeclutterItem,
   DeclutterItemDB,
   DashboardSummary,
+  DeclutterRealm,
   DeclutterMember,
   CreateRealmRequest,
   InviteMemberRequest,
@@ -16,23 +17,13 @@ import {
 // Dexie Database Class with Cloud addon
 export class DeclutterDatabase extends Dexie {
   items!: Table<DeclutterItemDB>;
+  // Note: realms and members are automatically provided by Dexie Cloud addon
 
   constructor() {
     // Pass the database name and options including the dexieCloud addon
     super("DeclutterDB", { addons: [dexieCloud] });
 
-    // For MVP: Since we're changing primary key format, we need to start fresh
-    // In production, you'd want to implement a proper data migration
-
-    // Version 1 - Use Dexie Cloud's @ prefix for auto-generated IDs
-    // The @ prefix tells Dexie to generate globally unique string IDs
     this.version(1).stores({
-      items:
-        "@id, createdAt, updatedAt, recommendedAction, category, nameEnglishSpecific, [recommendedAction+updatedAt], [category+updatedAt]",
-    });
-
-    // Version 2 - Add realm sharing support (Dexie Cloud provides realms and members tables)
-    this.version(2).stores({
       items:
         "@id, realmId, createdAt, updatedAt, recommendedAction, category, nameEnglishSpecific, [recommendedAction+updatedAt], [category+updatedAt], [realmId+updatedAt]",
     });
@@ -125,13 +116,43 @@ export async function createRealm(
   request: CreateRealmRequest,
 ): Promise<string> {
   try {
-    if (!dbInstance?.cloud?.currentUser) {
+    const db = getDb();
+    if (!db.cloud?.currentUser) {
       throw new Error("User must be authenticated to create a realm");
     }
 
-    // For now, create a simple realm ID
-    // In a full implementation, this would integrate with Dexie Cloud's realm system
-    const realmId = `realm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Use Dexie Cloud's built-in realm management
+    const currentUser = db.cloud.currentUser.getValue();
+    if (!currentUser || !currentUser.userId) {
+      throw new Error("No authenticated user found");
+    }
+
+    // Create a realm using Dexie Cloud's access control system
+    const realmId = await db.transaction(
+      "rw",
+      ["realms", "members"],
+      async () => {
+        // Generate a globally unique realm ID with required "rlm" prefix for Dexie Cloud
+        const newRealmId = `rlm${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
+
+        // Add to Dexie Cloud's realms table
+        await db.realms.add({
+          realmId: newRealmId,
+          name: request.name,
+          owner: currentUser.userId,
+        });
+
+        // Add the creator as the owner member
+        await db.members.add({
+          realmId: newRealmId,
+          userId: currentUser.userId,
+          name: currentUser.name || "Owner",
+          email: currentUser.email,
+        });
+
+        return newRealmId;
+      },
+    );
 
     console.log(`Created realm: ${request.name} with ID: ${realmId}`);
     return realmId;
@@ -148,18 +169,63 @@ export async function inviteMember(
   request: InviteMemberRequest,
 ): Promise<string> {
   try {
-    if (!dbInstance?.cloud?.currentUser) {
+    const db = getDb();
+    if (!db.cloud?.currentUser) {
       throw new Error("User must be authenticated to invite members");
     }
 
-    // Simplified implementation for demonstration
-    console.log(
-      `Inviting ${request.name} (${request.email}) to realm ${request.realmId}`,
+    const currentUser = db.cloud.currentUser.getValue();
+    if (!currentUser || !currentUser.userId) {
+      throw new Error("No authenticated user found");
+    }
+
+    // Check if user is the realm owner
+    const realm = await db.realms.get(request.realmId);
+    if (!realm || realm.owner !== currentUser.userId) {
+      throw new Error("Only realm owners can invite members");
+    }
+
+    // Check if user is already a member or has a pending invitation
+    const allMembersInRealm = await db.members
+      .where("realmId")
+      .equals(request.realmId)
+      .toArray();
+    const existingMember = allMembersInRealm.find(
+      (m) => m.email === request.email,
     );
-    return `invite_${Date.now()}`;
+
+    if (existingMember) {
+      if (existingMember.accepted) {
+        throw new Error("User is already a member of this realm");
+      } else if (existingMember.invite && !existingMember.rejected) {
+        throw new Error("User already has a pending invitation to this realm");
+      }
+    }
+
+    // Create the invitation using Dexie Cloud's member system
+    const inviteId = await db.transaction("rw", "members", async () => {
+      const newInviteId = `invite_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      await db.members.add({
+        id: newInviteId,
+        realmId: request.realmId,
+        name: request.name,
+        email: request.email,
+        invite: true,
+      });
+
+      return newInviteId;
+    });
+
+    console.log(
+      `Invited ${request.name} (${request.email}) to realm ${request.realmId}`,
+    );
+    return inviteId;
   } catch (error) {
     console.error("Error inviting member:", error);
-    throw new Error("Failed to invite member");
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to invite member",
+    );
   }
 }
 
@@ -168,15 +234,47 @@ export async function inviteMember(
  */
 export async function acceptInvitation(memberId: string): Promise<void> {
   try {
-    if (!dbInstance?.cloud?.currentUser) {
+    const db = getDb();
+    if (!db.cloud?.currentUser) {
       throw new Error("User must be authenticated to accept invitations");
     }
 
-    // Simplified implementation for demonstration
-    console.log(`Accepting invitation ${memberId}`);
+    const currentUser = db.cloud.currentUser.getValue();
+    if (!currentUser || !currentUser.userId) {
+      throw new Error("No authenticated user found");
+    }
+
+    // Find the invitation
+    const invitation = await db.members.get(memberId);
+    if (!invitation) {
+      throw new Error("Invitation not found");
+    }
+
+    // Verify this invitation is for the current user
+    if (invitation.email !== currentUser.email) {
+      throw new Error("This invitation is not for the current user");
+    }
+
+    // Check if invitation is still valid
+    if (!invitation.invite || invitation.accepted || invitation.rejected) {
+      throw new Error("This invitation is no longer valid");
+    }
+
+    // Accept the invitation by updating the member record
+    await db.transaction("rw", "members", async () => {
+      await db.members.update(memberId, {
+        userId: currentUser.userId,
+        accepted: new Date(),
+        invite: false, // No longer a pending invitation
+      });
+    });
+
+    console.log(`Accepted invitation ${memberId}`);
   } catch (error) {
     console.error("Error accepting invitation:", error);
-    throw new Error("Failed to accept invitation");
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to accept invitation",
+    );
   }
 }
 
@@ -185,13 +283,83 @@ export async function acceptInvitation(memberId: string): Promise<void> {
  */
 export async function getUserRealms(): Promise<RealmSummary[]> {
   try {
-    if (!dbInstance?.cloud?.currentUser) {
+    const db = getDb();
+    if (!db.cloud?.currentUser) {
       return [];
     }
 
-    // Return empty array for now - simplified implementation
-    // In a full implementation, this would query Dexie Cloud's built-in realm system
-    return [];
+    const currentUser = db.cloud.currentUser.getValue();
+    if (!currentUser || !currentUser.userId) {
+      return [];
+    }
+
+    // Find all realms where the user is a member or owner
+    const userMemberships = await db.members
+      .where("userId")
+      .equals(currentUser.userId)
+      .toArray();
+
+    // Get all realms and filter by owner since owner might not be indexed
+    const allRealms = await db.realms.toArray();
+    const ownedRealms = allRealms.filter(
+      (realm) => realm.owner === currentUser.userId,
+    );
+
+    const realmSummaries: RealmSummary[] = [];
+
+    // Process member realms
+    for (const membership of userMemberships) {
+      const realm = await db.realms.get(membership.realmId);
+      if (!realm) continue;
+
+      const allMembers = await db.members
+        .where("realmId")
+        .equals(membership.realmId)
+        .toArray();
+
+      const itemCount = await db.items
+        .where("realmId")
+        .equals(membership.realmId)
+        .count();
+
+      realmSummaries.push({
+        realm,
+        members: allMembers,
+        itemCount,
+        isOwner: realm.owner === currentUser.userId,
+      });
+    }
+
+    // Process owned realms (in case there's no explicit membership record)
+    for (const realm of ownedRealms) {
+      // Skip if already processed as a member
+      if (
+        realmSummaries.some(
+          (summary) => summary.realm.realmId === realm.realmId,
+        )
+      ) {
+        continue;
+      }
+
+      const allMembers = await db.members
+        .where("realmId")
+        .equals(realm.realmId)
+        .toArray();
+
+      const itemCount = await db.items
+        .where("realmId")
+        .equals(realm.realmId)
+        .count();
+
+      realmSummaries.push({
+        realm,
+        members: allMembers,
+        itemCount,
+        isOwner: true,
+      });
+    }
+
+    return realmSummaries;
   } catch (error) {
     console.error("Error getting user realms:", error);
     throw new Error("Failed to get user realms");
@@ -203,12 +371,27 @@ export async function getUserRealms(): Promise<RealmSummary[]> {
  */
 export async function getPendingInvitations(): Promise<DeclutterMember[]> {
   try {
-    if (!dbInstance?.cloud?.currentUser) {
+    const db = getDb();
+    if (!db.cloud?.currentUser) {
       return [];
     }
 
-    // Return empty array for now - simplified implementation
-    return [];
+    const currentUser = db.cloud.currentUser.getValue();
+    if (!currentUser || !currentUser.email) {
+      return [];
+    }
+
+    // Find all pending invitations for the current user's email
+    const pendingInvitations = await db.members
+      .where("email")
+      .equals(currentUser.email)
+      .and(
+        (member) =>
+          member.invite === true && !member.accepted && !member.rejected,
+      )
+      .toArray();
+
+    return pendingInvitations;
   } catch (error) {
     console.error("Error getting pending invitations:", error);
     throw new Error("Failed to get pending invitations");
@@ -220,15 +403,48 @@ export async function getPendingInvitations(): Promise<DeclutterMember[]> {
  */
 export async function removeMember(memberId: string): Promise<void> {
   try {
-    if (!dbInstance?.cloud?.currentUser) {
+    const db = getDb();
+    if (!db.cloud?.currentUser) {
       throw new Error("User must be authenticated to remove members");
     }
 
-    // Simplified implementation for demonstration
-    console.log(`Removing member ${memberId}`);
+    const currentUser = db.cloud.currentUser.getValue();
+    if (!currentUser || !currentUser.userId) {
+      throw new Error("No authenticated user found");
+    }
+
+    // Get the member to be removed
+    const memberToRemove = await db.members.get(memberId);
+    if (!memberToRemove) {
+      throw new Error("Member not found");
+    }
+
+    // Verify the current user is the realm owner
+    const realm = await db.realms.get(memberToRemove.realmId);
+    if (!realm || realm.owner !== currentUser.userId) {
+      throw new Error("Only realm owners can remove members");
+    }
+
+    // Prevent owner from removing themselves (they should transfer ownership first)
+    if (memberToRemove.userId === currentUser.userId) {
+      throw new Error(
+        "Owners cannot remove themselves. Transfer ownership first.",
+      );
+    }
+
+    // Remove the member
+    await db.transaction("rw", "members", async () => {
+      await db.members.delete(memberId);
+    });
+
+    console.log(
+      `Removed member ${memberId} from realm ${memberToRemove.realmId}`,
+    );
   } catch (error) {
     console.error("Error removing member:", error);
-    throw new Error("Failed to remove member");
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to remove member",
+    );
   }
 }
 
@@ -391,17 +607,19 @@ export async function getItem(id: string): Promise<DeclutterItem | undefined> {
 export async function listItems(): Promise<DeclutterItem[]> {
   try {
     const realmId = getCurrentRealmId();
+    const db = getDb();
+    const userId = db.cloud?.currentUser?.getValue()?.userId;
 
     if (realmId === null) {
-      // Show only private items (no realm or realm is null)
-      return await getDb()
-        .items.filter((item) => !item.realmId)
+      // Show only private items (no realm or realm is undefined)
+      return await db.items
+        .filter((item) => !item.realmId || item.realmId === userId)
         .reverse()
         .sortBy("updatedAt");
     } else {
       // Show items from specific realm
-      return await getDb()
-        .items.where("realmId")
+      return await db.items
+        .where("realmId")
         .equals(realmId)
         .reverse()
         .sortBy("updatedAt");
@@ -837,5 +1055,208 @@ export async function optimizeDatabase(): Promise<void> {
   } catch (error) {
     console.error("Error optimizing database:", error);
     throw new Error("Failed to optimize database");
+  }
+}
+
+// Additional Realm Utility Functions
+
+/**
+ * Reject an invitation to join a realm
+ */
+export async function rejectInvitation(memberId: string): Promise<void> {
+  try {
+    const db = getDb();
+    if (!db.cloud?.currentUser) {
+      throw new Error("User must be authenticated to reject invitations");
+    }
+
+    const currentUser = db.cloud.currentUser.getValue();
+    if (!currentUser || !currentUser.email) {
+      throw new Error("No authenticated user found");
+    }
+
+    // Find the invitation
+    const invitation = await db.members.get(memberId);
+    if (!invitation) {
+      throw new Error("Invitation not found");
+    }
+
+    // Verify this invitation is for the current user
+    if (invitation.email !== currentUser.email) {
+      throw new Error("This invitation is not for the current user");
+    }
+
+    // Check if invitation is still valid
+    if (!invitation.invite || invitation.accepted || invitation.rejected) {
+      throw new Error("This invitation is no longer valid");
+    }
+
+    // Reject the invitation
+    await db.transaction("rw", "members", async () => {
+      await db.members.update(memberId, {
+        rejected: new Date(),
+        invite: false,
+      });
+    });
+
+    console.log(`Rejected invitation ${memberId}`);
+  } catch (error) {
+    console.error("Error rejecting invitation:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to reject invitation",
+    );
+  }
+}
+
+/**
+ * Leave a realm (non-owners only)
+ */
+export async function leaveRealm(realmId: string): Promise<void> {
+  try {
+    const db = getDb();
+    if (!db.cloud?.currentUser) {
+      throw new Error("User must be authenticated to leave realms");
+    }
+
+    const currentUser = db.cloud.currentUser.getValue();
+    if (!currentUser || !currentUser.userId) {
+      throw new Error("No authenticated user found");
+    }
+
+    // Find the user's membership
+    const allMembersInRealm = await db.members
+      .where("realmId")
+      .equals(realmId)
+      .toArray();
+    const membership = allMembersInRealm.find(
+      (m) => m.userId === currentUser.userId,
+    );
+
+    if (!membership) {
+      throw new Error("You are not a member of this realm");
+    }
+
+    // Prevent owners from leaving (they should transfer ownership first)
+    const realm = await db.realms.get(realmId);
+    if (realm && realm.owner === currentUser.userId) {
+      throw new Error("Owners cannot leave realms. Transfer ownership first.");
+    }
+
+    // Remove the membership
+    await db.transaction("rw", "members", async () => {
+      await db.members.delete(membership.id!);
+    });
+
+    // If the user was viewing this realm, switch back to private view
+    if (getCurrentRealmId() === realmId) {
+      setCurrentRealmId(null);
+    }
+
+    console.log(`Left realm ${realmId}`);
+  } catch (error) {
+    console.error("Error leaving realm:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to leave realm",
+    );
+  }
+}
+
+/**
+ * Transfer realm ownership to another member
+ */
+export async function transferRealmOwnership(
+  realmId: string,
+  newOwnerId: string,
+): Promise<void> {
+  try {
+    const db = getDb();
+    if (!db.cloud?.currentUser) {
+      throw new Error("User must be authenticated to transfer ownership");
+    }
+
+    const currentUser = db.cloud.currentUser.getValue();
+    if (!currentUser || !currentUser.userId) {
+      throw new Error("No authenticated user found");
+    }
+
+    // Verify current user is the owner
+    const realm = await db.realms.get(realmId);
+    if (!realm || realm.owner !== currentUser.userId) {
+      throw new Error("Only realm owners can transfer ownership");
+    }
+
+    // Verify the new owner is a member of the realm
+    const allMembersInRealm = await db.members
+      .where("realmId")
+      .equals(realmId)
+      .toArray();
+    const newOwnerMembership = allMembersInRealm.find(
+      (m) => m.userId === newOwnerId,
+    );
+
+    if (!newOwnerMembership || !newOwnerMembership.accepted) {
+      throw new Error("New owner must be an accepted member of the realm");
+    }
+
+    // Transfer ownership
+    await db.transaction("rw", "realms", async () => {
+      // Update realm owner
+      await db.realms.update(realmId, { owner: newOwnerId });
+    });
+
+    console.log(
+      `Transferred ownership of realm ${realmId} to user ${newOwnerId}`,
+    );
+  } catch (error) {
+    console.error("Error transferring realm ownership:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to transfer ownership",
+    );
+  }
+}
+
+/**
+ * Get realm details by ID (for members only)
+ */
+export async function getRealm(
+  realmId: string,
+): Promise<DeclutterRealm | null> {
+  try {
+    const db = getDb();
+    if (!db.cloud?.currentUser) {
+      return null;
+    }
+
+    const currentUser = db.cloud.currentUser.getValue();
+    if (!currentUser || !currentUser.userId) {
+      return null;
+    }
+
+    // Verify user has access to this realm
+    // We need to query by realmId first then filter for userId
+    const allMembersInRealm = await db.members
+      .where("realmId")
+      .equals(realmId)
+      .toArray();
+    const membership = allMembersInRealm.find(
+      (m) => m.userId === currentUser.userId,
+    );
+
+    // Check if user is a member or owner
+    const realm = await db.realms.get(realmId);
+    const isMember = membership && membership.userId === currentUser.userId;
+    const isOwner = realm && realm.owner === currentUser.userId;
+
+    if (!isMember && !isOwner) {
+      throw new Error("Access denied to this realm");
+    }
+
+    // Return the realm
+    return (await db.realms.get(realmId)) || null;
+  } catch (error) {
+    console.error("Error getting realm:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to get realm",
+    );
   }
 }
