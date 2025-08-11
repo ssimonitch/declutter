@@ -21,6 +21,7 @@ interface CapturePageState {
   isAnalyzing: boolean;
   error: string | null;
   precisionMode: boolean;
+  exaSearch: boolean;
 }
 
 export default function CapturePage() {
@@ -31,6 +32,7 @@ export default function CapturePage() {
     isAnalyzing: false,
     error: null,
     precisionMode: false,
+    exaSearch: false,
   });
 
   // Load saved municipality from localStorage
@@ -63,12 +65,7 @@ export default function CapturePage() {
 
   // Handle photo capture and analysis
   const handlePhotoCapture = useCallback(
-    async (
-      photo: Blob,
-      thumbnail: Blob,
-      quality: ImageQuality,
-      _originalFile?: File,
-    ) => {
+    async (photo: Blob, thumbnail: Blob, quality: ImageQuality) => {
       setState((prev) => ({ ...prev, isAnalyzing: true, error: null }));
 
       try {
@@ -77,6 +74,7 @@ export default function CapturePage() {
         formData.append("image", photo, "photo.jpg");
         formData.append("municipalityCode", state.selectedMunicipality);
         formData.append("precisionMode", state.precisionMode.toString());
+        formData.append("exaSearch", state.exaSearch.toString());
 
         // Call analyze API
         const response = await fetch("/api/analyze", {
@@ -94,6 +92,17 @@ export default function CapturePage() {
           throw new Error(result.error || "分析に失敗しました");
         }
 
+        // Log Exa search status for user feedback
+        if (state.exaSearch && result.exaSearchStatus) {
+          console.log("Exa search status:", {
+            status: result.exaSearchStatus,
+            results: result.exaResultCount,
+            cost: result.exaEstimatedCost
+              ? `$${result.exaEstimatedCost.toFixed(4)}`
+              : "N/A",
+          });
+        }
+
         // Store photo and thumbnail for the edit page
         const tempPhotoData = {
           photo: photo,
@@ -105,9 +114,13 @@ export default function CapturePage() {
 
         // Store in sessionStorage to pass to edit page
         // We'll create a temporary ID for navigation
-        const tempId = `temp_${Date.now()}`;
+        const tempId = `${Date.now()}`;
+        const storageKey = `declutter_temp_${tempId}`;
+
+        console.log("Storing temp data with key:", storageKey);
+
         sessionStorage.setItem(
-          `declutter_temp_${tempId}`,
+          storageKey,
           JSON.stringify({
             ...tempPhotoData,
             // Convert blobs to base64 for storage
@@ -117,6 +130,7 @@ export default function CapturePage() {
         );
 
         // Navigate to edit page
+        console.log("Navigating to edit page with tempId:", tempId);
         router.push(`/edit/new?temp=${tempId}`);
       } catch (error) {
         console.error("Failed to analyze photo:", error);
@@ -131,7 +145,7 @@ export default function CapturePage() {
         setState((prev) => ({ ...prev, isAnalyzing: false }));
       }
     },
-    [state.selectedMunicipality, state.precisionMode, router],
+    [state.selectedMunicipality, state.precisionMode, state.exaSearch, router],
   );
 
   // Handle error from PhotoCapture component
@@ -295,17 +309,19 @@ export default function CapturePage() {
           </div>
         )}
 
-        {/* Precision Mode Toggle */}
+        {/* Analysis Settings */}
         {!state.showMunicipalitySelector && (
           <div className="mb-6 bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">分析設定</h3>
-            <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-700 mb-4">分析設定</h3>
+
+            {/* Precision Mode Toggle */}
+            <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-sm font-medium text-gray-900">
                   精度優先モード
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  より正確な分析結果を得られますが、分析に時間がかかります
+                  高度な推論モデルを使用してより詳細な分析を行います
                 </p>
               </div>
               <button
@@ -325,6 +341,50 @@ export default function CapturePage() {
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                     state.precisionMode ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Exa Search Toggle */}
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  Exa Search連携
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                    推奨
+                  </span>
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  最新の日本市場情報をExa検索で取得し、より正確な価格分析を行います
+                </p>
+                {state.exaSearch && (
+                  <div className="mt-2 p-2 bg-green-50 rounded-md">
+                    <p className="text-xs text-green-700">
+                      <strong>メリット:</strong> Exa
+                      Searchは常に構造化された形式で応答するため、
+                      安定した分析結果を提供します。
+                    </p>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() =>
+                  setState((prev) => ({
+                    ...prev,
+                    exaSearch: !prev.exaSearch,
+                  }))
+                }
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  state.exaSearch ? "bg-green-600" : "bg-gray-200"
+                }`}
+                role="switch"
+                aria-checked={state.exaSearch}
+              >
+                <span className="sr-only">Exa Search連携を切り替え</span>
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    state.exaSearch ? "translate-x-6" : "translate-x-1"
                   }`}
                 />
               </button>
@@ -371,7 +431,9 @@ export default function CapturePage() {
                       AI分析中...
                     </p>
                     <p className="text-xs text-blue-700">
-                      商品情報を自動で認識しています
+                      {state.exaSearch
+                        ? "最新の市場データを検索して商品情報を分析しています"
+                        : "商品情報を自動で認識しています"}
                     </p>
                   </div>
                 </div>

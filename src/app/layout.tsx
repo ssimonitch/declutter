@@ -3,6 +3,7 @@ import { Noto_Sans_JP } from "next/font/google";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import DatabaseInitializer from "@/components/database-initializer";
 import "./globals.css";
 
 const notoSansJP = Noto_Sans_JP({
@@ -161,8 +162,10 @@ export default function RootLayout({
       <body
         className={`${notoSansJP.variable} font-sans antialiased bg-gray-50 min-h-screen`}
       >
-        <Navigation />
-        <main className="flex-1">{children}</main>
+        <DatabaseInitializer>
+          <Navigation />
+          <main className="flex-1">{children}</main>
+        </DatabaseInitializer>
       </body>
     </html>
   );

@@ -4,13 +4,14 @@ import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import DashboardSummary from "@/components/dashboard-summary";
 import ItemsTable from "@/components/items-table";
+import FamilySharing from "@/components/family-sharing";
 import { listItems } from "@/lib/db";
 import { generateCSVContent, createCSVBlob, downloadCSV } from "@/utils/export";
 import type { DeclutterItem } from "@/lib/types";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [refreshTrigger] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -192,6 +193,9 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* Family Sharing */}
+        <FamilySharing className="mb-8" />
 
         {/* Dashboard Summary */}
         <DashboardSummary

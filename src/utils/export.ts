@@ -66,24 +66,55 @@ function formatArrayField(array: string[] | undefined): string {
 function transformItemToCSVRow(item: DeclutterItem): Record<string, string> {
   return {
     ID: sanitizeCSVCell(item.id),
-    Name: sanitizeCSVCell(item.name),
-    "Name (Japanese)": sanitizeCSVCell(item.nameJapanese || ""),
+
+    // Name fields
+    "Name Japanese Specific": sanitizeCSVCell(item.nameJapaneseSpecific),
+    "Name English Specific": sanitizeCSVCell(item.nameEnglishSpecific),
+    "Name Japanese Generic": sanitizeCSVCell(item.nameJapaneseGeneric),
+    "Name English Generic": sanitizeCSVCell(item.nameEnglishGeneric),
+
     Description: sanitizeCSVCell(item.description),
     Category: sanitizeCSVCell(item.category),
     Condition: sanitizeCSVCell(item.condition),
-    "Price Range (JPY)": `${formatJPYCurrency(item.estimatedPriceJPY.low)} - ${formatJPYCurrency(item.estimatedPriceJPY.high)}`,
-    "Price Low (JPY)": formatJPYCurrency(item.estimatedPriceJPY.low),
-    "Price High (JPY)": formatJPYCurrency(item.estimatedPriceJPY.high),
-    "Price Confidence": sanitizeCSVCell(
-      Math.round(item.estimatedPriceJPY.confidence * 100) + "%",
+    Quantity: sanitizeCSVCell(item.quantity || 1),
+
+    // Pricing fields
+    "Online Auction Price Range (JPY)": `${formatJPYCurrency(
+      item.onlineAuctionPriceJPY.low,
+    )} - ${formatJPYCurrency(item.onlineAuctionPriceJPY.high)}`,
+    "Online Auction Price Low (JPY)": formatJPYCurrency(
+      item.onlineAuctionPriceJPY.low,
     ),
+    "Online Auction Price High (JPY)": formatJPYCurrency(
+      item.onlineAuctionPriceJPY.high,
+    ),
+    "Online Auction Price Confidence": sanitizeCSVCell(
+      Math.round(item.onlineAuctionPriceJPY.confidence * 100) + "%",
+    ),
+    "Thrift Shop Price Range (JPY)": `${formatJPYCurrency(
+      item.thriftShopPriceJPY.low,
+    )} - ${formatJPYCurrency(item.thriftShopPriceJPY.high)}`,
+    "Thrift Shop Price Low (JPY)": formatJPYCurrency(
+      item.thriftShopPriceJPY.low,
+    ),
+    "Thrift Shop Price High (JPY)": formatJPYCurrency(
+      item.thriftShopPriceJPY.high,
+    ),
+    "Thrift Shop Price Confidence": sanitizeCSVCell(
+      Math.round(item.thriftShopPriceJPY.confidence * 100) + "%",
+    ),
+
     "Recommended Action": sanitizeCSVCell(item.recommendedAction),
     "Action Rationale": sanitizeCSVCell(item.actionRationale || ""),
     Marketplaces: formatArrayField(item.marketplaces),
     "Search Queries": formatArrayField(item.searchQueries),
     Keywords: formatArrayField(item.keywords),
-    "Special Notes": sanitizeCSVCell(item.specialNotes),
-    "Disposal Fee (JPY)": formatJPYCurrency(item.disposalFeeJPY),
+    "Special Notes": sanitizeCSVCell(item.specialNotes || ""),
+    "Disposal Cost (JPY)":
+      item.disposalCostJPY !== undefined && item.disposalCostJPY !== null
+        ? formatJPYCurrency(item.disposalCostJPY)
+        : "",
+
     "Municipality Code": sanitizeCSVCell(item.municipalityCode || ""),
     "Created At": formatDateJapanese(item.createdAt),
     "Updated At": formatDateJapanese(item.updatedAt),

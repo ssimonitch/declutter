@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeItemImage, testGeminiConnection } from "@/lib/gemini";
+import { getExaMetrics } from "@/lib/exa";
 import type { AnalyzeApiResponse } from "@/lib/types";
 
 // Maximum file size for uploads (10MB)
@@ -26,6 +27,9 @@ export async function POST(
   request: NextRequest,
 ): Promise<NextResponse<AnalyzeApiResponse>> {
   try {
+    // Parse multipart form data
+    const formData = await request.formData();
+
     // Validate environment variables
     if (!process.env.GEMINI_API_KEY) {
       console.error("GEMINI_API_KEY environment variable not configured");
@@ -38,11 +42,22 @@ export async function POST(
       );
     }
 
-    // Parse multipart form data
-    const formData = await request.formData();
+    // EXA_API_KEY is only required if exaSearch is enabled
+    if (formData.get("exaSearch") === "true" && !process.env.EXA_API_KEY) {
+      console.error("EXA_API_KEY environment variable not configured");
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Exa Search configuration error. Please check server configuration.",
+        },
+        { status: 500 },
+      );
+    }
     const imageFile = formData.get("image") as File;
     const precisionMode = formData.get("precisionMode") === "true";
     const municipalityCode = formData.get("municipalityCode") as string | null;
+    const exaSearch = formData.get("exaSearch") === "true";
 
     // Validate required fields
     if (!imageFile) {
@@ -97,13 +112,14 @@ export async function POST(
     // Prepare analysis options
     const analysisOptions = {
       precisionMode,
+      exaSearch,
       ...(municipalityCode && { municipalityCode: municipalityCode.trim() }),
     };
 
     // Analyze image with Gemini AI
     if (!isProduction) {
       console.log(
-        `Analyzing image: ${imageFile.name} (${imageFile.size} bytes) with precision mode: ${precisionMode}`,
+        `Analyzing image: ${imageFile.name} (${imageFile.size} bytes) with precision mode: ${precisionMode}, Exa search: ${exaSearch}`,
       );
     }
 
@@ -112,15 +128,24 @@ export async function POST(
     // Log successful analysis
     if (!isProduction) {
       console.log(
-        `Analysis completed for ${imageFile.name}: ${analysisResult.name} (${analysisResult.category})`,
+        `Analysis completed for ${imageFile.name}: ${analysisResult.nameEnglishSpecific} (${analysisResult.category})`,
       );
     }
 
-    // Return structured response
+    // Return structured response with Exa metadata
+    const enhancedResult = analysisResult as typeof analysisResult & {
+      exaSearchStatus?: string;
+      exaResultCount?: number;
+      exaEstimatedCost?: number;
+    };
+
     return NextResponse.json(
       {
         success: true,
         data: analysisResult,
+        exaSearchStatus: enhancedResult.exaSearchStatus,
+        exaResultCount: enhancedResult.exaResultCount,
+        exaEstimatedCost: enhancedResult.exaEstimatedCost,
       },
       { status: 200 },
     );
@@ -223,6 +248,8 @@ export async function GET(): Promise<NextResponse> {
   try {
     const isConfigured = Boolean(process.env.GEMINI_API_KEY);
     const geminiConnected = isConfigured ? await testGeminiConnection() : false;
+    const exaConfigured = Boolean(process.env.EXA_API_KEY);
+    const exaMetrics = exaConfigured ? getExaMetrics() : null;
 
     return NextResponse.json(
       {
@@ -230,6 +257,8 @@ export async function GET(): Promise<NextResponse> {
         service: "Image Analysis API",
         configured: isConfigured,
         geminiConnected,
+        exaConfigured,
+        exaMetrics,
         supportedFormats: SUPPORTED_MIME_TYPES,
         maxFileSizeMB: MAX_FILE_SIZE / (1024 * 1024),
         timestamp: new Date().toISOString(),

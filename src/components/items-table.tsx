@@ -219,7 +219,7 @@ export default function ItemsTable({
                 // eslint-disable-next-line @next/next/no-img-element -- Blob URLs not supported by Next.js Image
                 <img
                   src={imageUrl}
-                  alt={row.original.name}
+                  alt={row.original.nameEnglishSpecific}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -247,16 +247,16 @@ export default function ItemsTable({
       }),
 
       // Name column
-      columnHelper.accessor("name", {
+      columnHelper.accessor("nameEnglishSpecific", {
         header: "商品名",
         cell: ({ row }) => (
           <div className="min-w-0">
             <div className="font-medium text-gray-900 truncate">
-              {row.original.name}
+              {row.original.nameEnglishSpecific}
             </div>
-            {row.original.nameJapanese && (
+            {row.original.nameJapaneseSpecific && (
               <div className="text-sm text-gray-500 truncate">
-                {row.original.nameJapanese}
+                {row.original.nameJapaneseSpecific}
               </div>
             )}
           </div>
@@ -275,8 +275,22 @@ export default function ItemsTable({
         size: 120,
       }),
 
+      // Quantity column
+      columnHelper.accessor("quantity", {
+        header: "数量",
+        cell: ({ getValue }) => {
+          const quantity = getValue() || 1;
+          return (
+            <span className="inline-flex items-center px-2 py-0.5 text-sm font-medium text-gray-900">
+              {quantity}
+            </span>
+          );
+        },
+        size: 60,
+      }),
+
       // Price range column
-      columnHelper.accessor("estimatedPriceJPY", {
+      columnHelper.accessor("onlineAuctionPriceJPY", {
         id: "priceRange",
         header: "価格帯",
         cell: ({ getValue }) => {
@@ -301,12 +315,12 @@ export default function ItemsTable({
         },
         sortingFn: (rowA, rowB) => {
           const avgA =
-            (rowA.original.estimatedPriceJPY.low +
-              rowA.original.estimatedPriceJPY.high) /
+            (rowA.original.onlineAuctionPriceJPY.low +
+              rowA.original.onlineAuctionPriceJPY.high) /
             2;
           const avgB =
-            (rowB.original.estimatedPriceJPY.low +
-              rowB.original.estimatedPriceJPY.high) /
+            (rowB.original.onlineAuctionPriceJPY.low +
+              rowB.original.onlineAuctionPriceJPY.high) /
             2;
           return avgA - avgB;
         },
@@ -414,7 +428,7 @@ export default function ItemsTable({
               // eslint-disable-next-line @next/next/no-img-element -- Blob URLs not supported by Next.js Image
               <img
                 src={imageUrl}
-                alt={item.name}
+                alt={item.nameEnglishSpecific}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -441,11 +455,11 @@ export default function ItemsTable({
             <div className="flex items-start justify-between">
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm font-medium text-gray-900 truncate">
-                  {item.name}
+                  {item.nameEnglishSpecific}
                 </h3>
-                {item.nameJapanese && (
+                {item.nameJapaneseSpecific && (
                   <p className="text-sm text-gray-500 truncate">
-                    {item.nameJapanese}
+                    {item.nameJapaneseSpecific}
                   </p>
                 )}
                 <p className="text-xs text-gray-500 mt-1">{item.category}</p>
@@ -471,21 +485,50 @@ export default function ItemsTable({
 
             <div className="flex items-center justify-between mt-2">
               <div className="text-xs">
-                <div className="font-medium">
-                  ¥{item.estimatedPriceJPY.low.toLocaleString("ja-JP")} - ¥
-                  {item.estimatedPriceJPY.high.toLocaleString("ja-JP")}
-                </div>
-                <div
-                  className={`${
-                    item.estimatedPriceJPY.confidence >= 0.7
+                {/* Display appropriate price based on action */}
+                {(() => {
+                  const action = item.recommendedAction;
+                  let displayPrice = item.onlineAuctionPriceJPY;
+                  let priceLabel = "オンライン";
+                  let priceColor = "text-green-700";
+
+                  if (action === "online") {
+                    displayPrice = item.onlineAuctionPriceJPY;
+                    priceLabel = "オンライン";
+                    priceColor = "text-green-700";
+                  } else if (action === "thrift") {
+                    displayPrice = item.thriftShopPriceJPY;
+                    priceLabel = "リサイクル";
+                    priceColor = "text-yellow-700";
+                  } else {
+                    // Default to online price for other actions
+                    displayPrice = item.onlineAuctionPriceJPY;
+                    priceLabel = "参考価格";
+                    priceColor = "text-gray-700";
+                  }
+
+                  const confidenceColor =
+                    displayPrice.confidence >= 0.7
                       ? "text-green-600"
-                      : item.estimatedPriceJPY.confidence >= 0.4
+                      : displayPrice.confidence >= 0.4
                         ? "text-yellow-600"
-                        : "text-red-600"
-                  }`}
-                >
-                  信頼度: {Math.round(item.estimatedPriceJPY.confidence * 100)}%
-                </div>
+                        : "text-red-600";
+
+                  return (
+                    <>
+                      <div className={`font-medium ${priceColor}`}>
+                        ¥{displayPrice.low.toLocaleString("ja-JP")} - ¥
+                        {displayPrice.high.toLocaleString("ja-JP")}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-gray-500">{priceLabel}</div>
+                        <div className={confidenceColor}>
+                          信頼度: {Math.round(displayPrice.confidence * 100)}%
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               <span
                 className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color}`}
@@ -548,7 +591,7 @@ export default function ItemsTable({
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               placeholder="商品名や説明で検索（入力中は遅延検索）"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -560,7 +603,7 @@ export default function ItemsTable({
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">すべて</option>
               {Object.entries(actionConfig).map(([value, config]) => (
@@ -579,7 +622,7 @@ export default function ItemsTable({
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">すべて</option>
               {categories.map((category) => (

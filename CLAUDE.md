@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 This is **Declutter AI**, a Next.js 15 web application designed to help elderly parents in Japan inventory and manage items for decluttering. The app uses Google Gemini AI to analyze photos of items and provide structured metadata including:
+
 - Japanese second-hand market value estimates
 - Disposal recommendations based on Japanese municipal regulations
 - Marketplace recommendations (Mercari, Yahoo Auctions, etc.)
@@ -15,7 +16,7 @@ This is **Declutter AI**, a Next.js 15 web application designed to help elderly 
 - **Language**: TypeScript with strict mode
 - **Styling**: Tailwind CSS v4
 - **Database**: Dexie (IndexedDB wrapper) for local browser storage
-- **AI Integration**: Google Gemini 2.5 Flash for image analysis
+- **AI Integration**: Google Gemini 2.0 Flash (latest generation) for image analysis
 - **Key Libraries**:
   - `react-hook-form` + `zod` for form validation
   - `@tanstack/react-table` for data tables
@@ -45,7 +46,9 @@ npm run lint
 ## Architecture & Data Flow
 
 ### Core Data Model
+
 The app centers around the `DeclutterItem` interface which stores:
+
 - Item metadata (name in English/Japanese, description, category)
 - Photos as compressed Blobs with thumbnails
 - Price estimates and confidence scores
@@ -77,7 +80,7 @@ The app centers around the `DeclutterItem` interface which stores:
 The app is specifically tailored for the Japanese second-hand market:
 
 - **Marketplaces**: Mercari, Yahoo Auctions, 2nd STREET, BOOK OFF, HARD OFF
-- **Disposal Categories**: 
+- **Disposal Categories**:
   - Regular trash (可燃ごみ/不燃ごみ)
   - Oversized items (粗大ごみ) with fee estimates
   - Home appliance recycling (家電リサイクル法)
@@ -86,10 +89,13 @@ The app is specifically tailored for the Japanese second-hand market:
 
 ## Gemini API Integration
 
-- **Model**: `gemini-2.0-flash-latest` (balance of cost/performance)
+- **Models** (2.0 family only - NEVER use older versions):
+  - Standard: `gemini-2.0-flash-exp` - Fast, efficient analysis
+  - Precision: `gemini-2.0-flash-thinking-exp-1219` - Advanced reasoning for complex items
+- **Web Grounding**: Supported on all 2.0 models for real-time market data
 - **Structured Output**: Uses schema validation for consistent responses
 - **System Prompt**: Japanese-context aware with marketplace expertise
-- **Cost**: ~$0.002-0.004 per item analysis
+- **Cost**: ~$0.001-0.003 per item analysis (very cost-effective)
 
 ## Important Implementation Notes
 
@@ -119,6 +125,7 @@ src/
 ## Environment Variables
 
 Required in `.env.local`:
+
 ```
 GEMINI_API_KEY=your_api_key_here
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -127,6 +134,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ## Testing & Validation
 
 Before committing changes:
+
 1. Run `npm run lint` to check code quality
 2. Run `npm run build` to verify TypeScript compilation
 3. Test image capture and AI analysis flow

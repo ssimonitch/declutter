@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-// Remove heroicons import - we'll use inline SVG
 import ItemForm from "@/components/item-form";
 import { getItem } from "@/lib/db";
 import type { DeclutterItem } from "@/lib/types";
@@ -12,6 +11,7 @@ interface EditPageState {
   loading: boolean;
   error: string | null;
   isNewItem: boolean;
+  tempStorageKey?: string;
 }
 
 export default function EditPage() {
@@ -43,18 +43,29 @@ export default function EditPage() {
     return new Blob([uInt8Array], { type: contentType });
   };
 
-  // Load item data
+  // Load item data - use a flag to prevent double execution
+  const [hasLoaded, setHasLoaded] = useState(false);
+
   useEffect(() => {
+    if (hasLoaded) return;
+
     const loadItem = async () => {
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
       try {
         if (state.isNewItem && tempId) {
           // Load from temporary session storage (new item from capture)
-          const tempDataStr = sessionStorage.getItem(
-            `declutter_temp_${tempId}`,
+          const storageKey = `declutter_temp_${tempId}`;
+          console.log("Looking for temp data with key:", storageKey);
+          console.log(
+            "Available keys in sessionStorage:",
+            Object.keys(sessionStorage),
           );
+
+          const tempDataStr = sessionStorage.getItem(storageKey);
           if (!tempDataStr) {
+            console.error("Temp data not found. tempId:", tempId);
+            console.error("Storage key:", storageKey);
             throw new Error(
               "Temporary data not found. Please go back and capture the photo again.",
             );
@@ -75,35 +86,52 @@ export default function EditPage() {
             photo,
             thumbnail,
             municipalityCode: tempData.municipalityCode,
-            // Use analyzed data with fallbacks
-            name: tempData.analysisData?.name || "",
-            nameJapanese: tempData.analysisData?.nameJapanese,
+
+            // Name fields from Gemini analysis
+            nameJapaneseSpecific:
+              tempData.analysisData?.nameJapaneseSpecific || "",
+            nameEnglishSpecific:
+              tempData.analysisData?.nameEnglishSpecific || "",
+            nameJapaneseGeneric:
+              tempData.analysisData?.nameJapaneseGeneric || "",
+            nameEnglishGeneric: tempData.analysisData?.nameEnglishGeneric || "",
+
             description: tempData.analysisData?.description || "",
             category: tempData.analysisData?.category || "その他",
             condition: tempData.analysisData?.condition || "good",
-            estimatedPriceJPY: tempData.analysisData?.estimatedPriceJPY || {
+            quantity: 1, // Default quantity for new items
+
+            // Price fields
+            onlineAuctionPriceJPY: tempData.analysisData
+              ?.onlineAuctionPriceJPY || {
               low: 0,
               high: 0,
               confidence: 0.5,
             },
+            thriftShopPriceJPY: tempData.analysisData?.thriftShopPriceJPY || {
+              low: 0,
+              high: 0,
+              confidence: 0.5,
+            },
+
             recommendedAction:
               tempData.analysisData?.recommendedAction || "keep",
-            actionRationale: tempData.analysisData?.actionRationale,
+            actionRationale: tempData.analysisData?.actionRationale || "",
             marketplaces: tempData.analysisData?.marketplaces || [],
             searchQueries: tempData.analysisData?.searchQueries || [],
-            specialNotes: tempData.analysisData?.specialNotes || "",
+            specialNotes: tempData.analysisData?.specialNotes,
             keywords: tempData.analysisData?.keywords || [],
-            disposalFeeJPY: tempData.analysisData?.disposalFeeJPY,
+
+            // Disposal cost field
+            disposalCostJPY: tempData.analysisData?.disposalCostJPY,
           };
 
           setState((prev) => ({
             ...prev,
             item: newItem,
             loading: false,
+            tempStorageKey: `declutter_temp_${tempId}`, // Store key for cleanup after save
           }));
-
-          // Clean up session storage
-          sessionStorage.removeItem(`declutter_temp_${tempId}`);
         } else if (!state.isNewItem) {
           // Load existing item from database
           const item = await getItem(itemId);
@@ -138,14 +166,21 @@ export default function EditPage() {
     };
 
     loadItem();
-  }, [itemId, tempId, state.isNewItem]);
+    setHasLoaded(true);
+  }, [itemId, tempId, state.isNewItem, hasLoaded]);
 
   // Handle form save
   const handleSave = useCallback(
-    (_savedItemId: string) => {
+    (savedItemId: string) => {
+      console.log("Item saved with ID:", savedItemId);
+      // Clean up temporary storage after successful save
+      if (state.tempStorageKey) {
+        console.log("Cleaning up temp storage:", state.tempStorageKey);
+        sessionStorage.removeItem(state.tempStorageKey);
+      }
       router.push("/dashboard");
     },
-    [router],
+    [router, state.tempStorageKey],
   );
 
   // Handle form cancel

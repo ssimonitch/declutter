@@ -2,25 +2,39 @@
 // Dexie IndexedDB wrapper with CRUD operations and utility functions
 
 import Dexie, { Table } from "dexie";
-import { v4 as uuidv4 } from "uuid";
-import { DeclutterItem, DeclutterItemDB, DashboardSummary } from "./types";
+import dexieCloud from "dexie-cloud-addon";
+import {
+  DeclutterItem,
+  DeclutterItemDB,
+  DashboardSummary,
+  DeclutterMember,
+  CreateRealmRequest,
+  InviteMemberRequest,
+  RealmSummary,
+} from "./types";
 
-// Dexie Database Class
+// Dexie Database Class with Cloud addon
 export class DeclutterDatabase extends Dexie {
   items!: Table<DeclutterItemDB>;
 
   constructor() {
-    super("DeclutterDB");
-    // Version 1 - Initial schema
+    // Pass the database name and options including the dexieCloud addon
+    super("DeclutterDB", { addons: [dexieCloud] });
+
+    // For MVP: Since we're changing primary key format, we need to start fresh
+    // In production, you'd want to implement a proper data migration
+
+    // Version 1 - Use Dexie Cloud's @ prefix for auto-generated IDs
+    // The @ prefix tells Dexie to generate globally unique string IDs
     this.version(1).stores({
-      // Define table with indexes for efficient querying
-      items: "id, createdAt, updatedAt, recommendedAction, category, name",
+      items:
+        "@id, createdAt, updatedAt, recommendedAction, category, nameEnglishSpecific, [recommendedAction+updatedAt], [category+updatedAt]",
     });
 
-    // Version 2 - Add compound indexes for better performance
+    // Version 2 - Add realm sharing support (Dexie Cloud provides realms and members tables)
     this.version(2).stores({
       items:
-        "id, createdAt, updatedAt, recommendedAction, category, name, [recommendedAction+updatedAt], [category+updatedAt]",
+        "@id, realmId, createdAt, updatedAt, recommendedAction, category, nameEnglishSpecific, [recommendedAction+updatedAt], [category+updatedAt], [realmId+updatedAt]",
     });
   }
 }
@@ -37,30 +51,275 @@ export function getDb(): DeclutterDatabase {
     if (typeof window === "undefined") {
       throw new Error("DeclutterDatabase must be used in the browser");
     }
+
     dbInstance = new DeclutterDatabase();
+
+    // Only configure cloud if it's available and environment variable is set
+    if (process.env.NEXT_PUBLIC_DEXIE_CLOUD_DATABASE_URL && dbInstance.cloud) {
+      try {
+        dbInstance.cloud.configure({
+          databaseUrl: process.env.NEXT_PUBLIC_DEXIE_CLOUD_DATABASE_URL,
+          requireAuth: true, // TODO: implement custom auth after testing other features
+        });
+      } catch (error) {
+        console.warn("Failed to configure Dexie Cloud:", error);
+      }
+    }
   }
   return dbInstance;
+}
+
+/**
+ * Initialize database
+ * Call this once when the app starts
+ */
+export async function initializeDatabase(): Promise<void> {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  // Initialize the database
+  try {
+    const db = getDb();
+    // Test that it works
+    await db.items.count();
+    console.log("Database initialized successfully");
+  } catch (error) {
+    console.error("Database initialization error:", error);
+    throw new Error("Failed to initialize database");
+  }
+}
+
+/**
+ * Reset the entire database (useful for development)
+ * WARNING: This will delete all data!
+ */
+export async function resetDatabase(): Promise<void> {
+  if (typeof window === "undefined") {
+    throw new Error("Database operations must be done in the browser");
+  }
+
+  try {
+    // Delete the existing database
+    await Dexie.delete("DeclutterDB");
+
+    // Clear the instance
+    dbInstance = null;
+
+    // Re-initialize
+    getDb();
+
+    console.log("Database reset successfully");
+  } catch (error) {
+    console.error("Error resetting database:", error);
+    throw new Error("Failed to reset database");
+  }
+}
+
+// Realm and Sharing Operations
+
+/**
+ * Create a new shared realm for family collaboration
+ */
+export async function createRealm(
+  request: CreateRealmRequest,
+): Promise<string> {
+  try {
+    if (!dbInstance?.cloud?.currentUser) {
+      throw new Error("User must be authenticated to create a realm");
+    }
+
+    // For now, create a simple realm ID
+    // In a full implementation, this would integrate with Dexie Cloud's realm system
+    const realmId = `realm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    console.log(`Created realm: ${request.name} with ID: ${realmId}`);
+    return realmId;
+  } catch (error) {
+    console.error("Error creating realm:", error);
+    throw new Error("Failed to create realm");
+  }
+}
+
+/**
+ * Invite a family member to a shared realm
+ */
+export async function inviteMember(
+  request: InviteMemberRequest,
+): Promise<string> {
+  try {
+    if (!dbInstance?.cloud?.currentUser) {
+      throw new Error("User must be authenticated to invite members");
+    }
+
+    // Simplified implementation for demonstration
+    console.log(
+      `Inviting ${request.name} (${request.email}) to realm ${request.realmId}`,
+    );
+    return `invite_${Date.now()}`;
+  } catch (error) {
+    console.error("Error inviting member:", error);
+    throw new Error("Failed to invite member");
+  }
+}
+
+/**
+ * Accept an invitation to join a realm
+ */
+export async function acceptInvitation(memberId: string): Promise<void> {
+  try {
+    if (!dbInstance?.cloud?.currentUser) {
+      throw new Error("User must be authenticated to accept invitations");
+    }
+
+    // Simplified implementation for demonstration
+    console.log(`Accepting invitation ${memberId}`);
+  } catch (error) {
+    console.error("Error accepting invitation:", error);
+    throw new Error("Failed to accept invitation");
+  }
+}
+
+/**
+ * Get all realms the current user belongs to
+ */
+export async function getUserRealms(): Promise<RealmSummary[]> {
+  try {
+    if (!dbInstance?.cloud?.currentUser) {
+      return [];
+    }
+
+    // Return empty array for now - simplified implementation
+    // In a full implementation, this would query Dexie Cloud's built-in realm system
+    return [];
+  } catch (error) {
+    console.error("Error getting user realms:", error);
+    throw new Error("Failed to get user realms");
+  }
+}
+
+/**
+ * Get pending invitations for the current user
+ */
+export async function getPendingInvitations(): Promise<DeclutterMember[]> {
+  try {
+    if (!dbInstance?.cloud?.currentUser) {
+      return [];
+    }
+
+    // Return empty array for now - simplified implementation
+    return [];
+  } catch (error) {
+    console.error("Error getting pending invitations:", error);
+    throw new Error("Failed to get pending invitations");
+  }
+}
+
+/**
+ * Remove a member from a realm (owner only)
+ */
+export async function removeMember(memberId: string): Promise<void> {
+  try {
+    if (!dbInstance?.cloud?.currentUser) {
+      throw new Error("User must be authenticated to remove members");
+    }
+
+    // Simplified implementation for demonstration
+    console.log(`Removing member ${memberId}`);
+  } catch (error) {
+    console.error("Error removing member:", error);
+    throw new Error("Failed to remove member");
+  }
+}
+
+/**
+ * Get the current active realm ID (for filtering items)
+ * Returns null for private items, or the selected realm ID
+ */
+let currentRealmId: string | null = null;
+
+export function getCurrentRealmId(): string | null {
+  return currentRealmId;
+}
+
+export function setCurrentRealmId(realmId: string | null): void {
+  currentRealmId = realmId;
+}
+
+/**
+ * Check if an item can be shared (not in a realm yet)
+ */
+export function canShareItem(item: DeclutterItem): boolean {
+  return !item.realmId;
+}
+
+/**
+ * Move items to a shared realm
+ */
+export async function shareItems(
+  itemIds: string[],
+  realmId: string,
+): Promise<void> {
+  try {
+    if (!dbInstance?.cloud?.currentUser) {
+      throw new Error("User must be authenticated to share items");
+    }
+
+    // Update items to include realm ID
+    for (const itemId of itemIds) {
+      await getDb().items.update(itemId, {
+        realmId,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    console.log(`Shared ${itemIds.length} items to realm ${realmId}`);
+  } catch (error) {
+    console.error("Error sharing items:", error);
+    throw new Error("Failed to share items");
+  }
+}
+
+/**
+ * Move items back to private (remove from realm)
+ */
+export async function unshareItems(itemIds: string[]): Promise<void> {
+  try {
+    const now = new Date().toISOString();
+
+    for (const itemId of itemIds) {
+      await getDb().items.update(itemId, {
+        realmId: undefined,
+        updatedAt: now,
+      });
+    }
+  } catch (error) {
+    console.error("Error unsharing items:", error);
+    throw new Error("Failed to unshare items");
+  }
 }
 
 // CRUD Operations
 
 /**
- * Add new item with generated UUID and timestamps
+ * Add new item with Dexie Cloud auto-generated ID and timestamps
  */
 export async function addItem(
   item: Omit<DeclutterItem, "id" | "createdAt" | "updatedAt">,
 ): Promise<string> {
   try {
     const now = new Date().toISOString();
-    const newItem: DeclutterItem = {
+    const newItem: Omit<DeclutterItem, "id"> = {
       ...item,
-      id: uuidv4(),
+      // ID will be auto-generated by Dexie due to @ prefix in schema
+      realmId: item.realmId || getCurrentRealmId() || undefined, // Use current realm if not specified
+      quantity: item.quantity || 1, // Default to 1 if not specified
       createdAt: now,
       updatedAt: now,
     };
 
-    await getDb().items.add(newItem);
-    return newItem.id;
+    // Dexie will auto-generate the ID and return it
+    const id = await getDb().items.add(newItem as DeclutterItem);
+    return id as string;
   } catch (error) {
     console.error("Error adding item:", error);
     throw new Error("Failed to add item to database");
@@ -127,10 +386,26 @@ export async function getItem(id: string): Promise<DeclutterItem | undefined> {
 
 /**
  * Get all items sorted by updatedAt (newest first)
+ * Filters by current realm if one is set
  */
 export async function listItems(): Promise<DeclutterItem[]> {
   try {
-    return await getDb().items.orderBy("updatedAt").reverse().toArray();
+    const realmId = getCurrentRealmId();
+
+    if (realmId === null) {
+      // Show only private items (no realm or realm is null)
+      return await getDb()
+        .items.filter((item) => !item.realmId)
+        .reverse()
+        .sortBy("updatedAt");
+    } else {
+      // Show items from specific realm
+      return await getDb()
+        .items.where("realmId")
+        .equals(realmId)
+        .reverse()
+        .sortBy("updatedAt");
+    }
   } catch (error) {
     console.error("Error listing items:", error);
     throw new Error("Failed to retrieve items");
@@ -139,6 +414,7 @@ export async function listItems(): Promise<DeclutterItem[]> {
 
 /**
  * Search items by name, description, keywords
+ * Filters by current realm if one is set
  */
 export async function searchItems(query: string): Promise<DeclutterItem[]> {
   try {
@@ -147,14 +423,27 @@ export async function searchItems(query: string): Promise<DeclutterItem[]> {
     }
 
     const lowerQuery = query.toLowerCase();
+    const realmId = getCurrentRealmId();
 
     const results = await getDb()
       .items.filter((item) => {
+        // First check realm filtering
+        if (realmId === null && item.realmId) {
+          return false; // Skip realm items when showing private
+        }
+        if (realmId !== null && item.realmId !== realmId) {
+          return false; // Skip items not in current realm
+        }
+
+        // Then check search query
         const searchableText = [
-          item.name,
-          item.nameJapanese || "",
+          item.nameJapaneseSpecific || "",
+          item.nameEnglishSpecific || "",
+          item.nameJapaneseGeneric || "",
+          item.nameEnglishGeneric || "",
           item.description,
-          item.specialNotes,
+          item.specialNotes || "",
+          item.actionRationale || "",
           ...item.keywords,
           ...item.searchQueries,
         ]
@@ -174,14 +463,24 @@ export async function searchItems(query: string): Promise<DeclutterItem[]> {
 
 /**
  * Filter items by recommendedAction
+ * Filters by current realm if one is set
  */
 export async function filterItemsByAction(
   action: string,
 ): Promise<DeclutterItem[]> {
   try {
-    const results = await getDb()
-      .items.where("recommendedAction")
-      .equals(action)
+    const realmId = getCurrentRealmId();
+
+    const query = getDb().items.where("recommendedAction").equals(action);
+
+    const results = await query
+      .filter((item) => {
+        if (realmId === null) {
+          return !item.realmId; // Show only private items
+        } else {
+          return item.realmId === realmId; // Show only items from current realm
+        }
+      })
       .sortBy("updatedAt");
 
     return results.reverse();
@@ -193,14 +492,24 @@ export async function filterItemsByAction(
 
 /**
  * Filter items by category
+ * Filters by current realm if one is set
  */
 export async function filterItemsByCategory(
   category: string,
 ): Promise<DeclutterItem[]> {
   try {
-    const results = await getDb()
-      .items.where("category")
-      .equals(category)
+    const realmId = getCurrentRealmId();
+
+    const query = getDb().items.where("category").equals(category);
+
+    const results = await query
+      .filter((item) => {
+        if (realmId === null) {
+          return !item.realmId; // Show only private items
+        } else {
+          return item.realmId === realmId; // Show only items from current realm
+        }
+      })
       .sortBy("updatedAt");
 
     return results.reverse();
@@ -299,20 +608,25 @@ export async function exportItemsForCSV(): Promise<
     id: string;
     createdAt: string;
     updatedAt: string;
-    name: string;
-    nameJapanese?: string;
+    nameJapaneseSpecific: string;
+    nameEnglishSpecific: string;
+    nameJapaneseGeneric: string;
+    nameEnglishGeneric: string;
     description: string;
     category: string;
     condition: string;
-    estimatedPriceRange: string;
-    priceConfidence: string;
+    quantity: number;
+    onlineAuctionPriceRange: string;
+    onlineAuctionPriceConfidence: string;
+    thriftShopPriceRange: string;
+    thriftShopPriceConfidence: string;
     recommendedAction: string;
-    actionRationale?: string;
+    actionRationale: string;
     marketplaces: string;
     searchQueries: string;
     specialNotes: string;
     keywords: string;
-    disposalFee: string;
+    disposalCost?: string;
     municipalityCode?: string;
   }>
 > {
@@ -324,25 +638,28 @@ export async function exportItemsForCSV(): Promise<
         id: item.id,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
-        name: item.name,
-        nameJapanese: item.nameJapanese,
+        nameJapaneseSpecific: item.nameJapaneseSpecific,
+        nameEnglishSpecific: item.nameEnglishSpecific,
+        nameJapaneseGeneric: item.nameJapaneseGeneric,
+        nameEnglishGeneric: item.nameEnglishGeneric,
         description: item.description,
         category: item.category,
         condition: item.condition,
-        // Format price range as readable string
-        estimatedPriceRange: `¥${item.estimatedPriceJPY.low.toLocaleString()} - ¥${item.estimatedPriceJPY.high.toLocaleString()}`,
-        priceConfidence: `${Math.round(item.estimatedPriceJPY.confidence * 100)}%`,
+        quantity: item.quantity || 1,
+        onlineAuctionPriceRange: `¥${item.onlineAuctionPriceJPY.low.toLocaleString()} - ¥${item.onlineAuctionPriceJPY.high.toLocaleString()}`,
+        onlineAuctionPriceConfidence: `${Math.round(item.onlineAuctionPriceJPY.confidence * 100)}%`,
+        thriftShopPriceRange: `¥${item.thriftShopPriceJPY.low.toLocaleString()} - ¥${item.thriftShopPriceJPY.high.toLocaleString()}`,
+        thriftShopPriceConfidence: `${Math.round(item.thriftShopPriceJPY.confidence * 100)}%`,
         recommendedAction: item.recommendedAction,
-        actionRationale: item.actionRationale,
-        // Convert arrays to comma-separated strings for CSV compatibility
+        actionRationale: item.actionRationale || "",
         marketplaces: item.marketplaces.join(", "),
         searchQueries: item.searchQueries.join(", "),
-        specialNotes: item.specialNotes,
+        specialNotes: item.specialNotes || "",
         keywords: item.keywords.join(", "),
-        // Format disposal fee if present
-        disposalFee: item.disposalFeeJPY
-          ? `¥${item.disposalFeeJPY.toLocaleString()}`
-          : "",
+        disposalCost:
+          item.disposalCostJPY !== undefined && item.disposalCostJPY !== null
+            ? `¥${item.disposalCostJPY.toLocaleString()}`
+            : undefined,
         municipalityCode: item.municipalityCode,
       };
     });
@@ -377,29 +694,37 @@ export async function calculateDashboardSummary(): Promise<DashboardSummary> {
 
     // Process each item
     items.forEach((item) => {
-      // Count by action
+      const quantity = item.quantity || 1;
+
+      // Count by action (considering quantity)
       if (item.recommendedAction in itemsByAction) {
-        itemsByAction[item.recommendedAction as keyof typeof itemsByAction]++;
+        itemsByAction[item.recommendedAction as keyof typeof itemsByAction] +=
+          quantity;
       }
 
-      // Count by category
+      // Count by category (considering quantity)
       itemsByCategory[item.category] =
-        (itemsByCategory[item.category] || 0) + 1;
+        (itemsByCategory[item.category] || 0) + quantity;
 
-      // Calculate resale values (only for online and thrift items)
-      if (
-        item.recommendedAction === "online" ||
-        item.recommendedAction === "thrift"
-      ) {
-        totalResaleLow += item.estimatedPriceJPY.low;
-        totalResaleHigh += item.estimatedPriceJPY.high;
-        totalConfidence += item.estimatedPriceJPY.confidence;
+      // Calculate resale values
+      if (item.recommendedAction === "online") {
+        const priceData = item.onlineAuctionPriceJPY;
+        totalResaleLow += priceData.low * quantity;
+        totalResaleHigh += priceData.high * quantity;
+        totalConfidence += priceData.confidence;
+        resaleItemCount++;
+      } else if (item.recommendedAction === "thrift") {
+        const priceData = item.thriftShopPriceJPY;
+        totalResaleLow += priceData.low * quantity;
+        totalResaleHigh += priceData.high * quantity;
+        totalConfidence += priceData.confidence;
         resaleItemCount++;
       }
 
-      // Calculate disposal costs (only for trash items with disposal fee)
-      if (item.recommendedAction === "trash" && item.disposalFeeJPY) {
-        totalDisposalCost += item.disposalFeeJPY;
+      // Calculate disposal costs
+      if (item.recommendedAction === "trash") {
+        const disposalCost = item.disposalCostJPY || 0;
+        totalDisposalCost += disposalCost * quantity;
       }
     });
 
@@ -493,7 +818,7 @@ export async function optimizeDatabase(): Promise<void> {
         item.id &&
         item.createdAt &&
         item.updatedAt &&
-        item.name &&
+        item.nameEnglishSpecific &&
         item.photo &&
         item.thumbnail
       );
