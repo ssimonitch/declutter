@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeItemImage, testGeminiConnection } from "@/lib/gemini";
 import { getExaMetrics } from "@/lib/exa";
+import { logger } from "@/lib/logger";
 import type { AnalyzeApiResponse } from "@/lib/types";
 
 // Maximum file size for uploads (10MB)
@@ -16,8 +17,6 @@ const SUPPORTED_MIME_TYPES = [
   "image/png",
   "image/webp",
 ];
-
-const isProduction = process.env.NODE_ENV === "production";
 
 /**
  * POST /api/analyze
@@ -32,7 +31,7 @@ export async function POST(
 
     // Validate environment variables
     if (!process.env.GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY environment variable not configured");
+      logger.error("GEMINI_API_KEY environment variable not configured");
       return NextResponse.json(
         {
           success: false,
@@ -44,7 +43,9 @@ export async function POST(
 
     // EXA_API_KEY is only required if exaSearch is enabled
     if (formData.get("exaSearch") === "true" && !process.env.EXA_API_KEY) {
-      console.error("EXA_API_KEY environment variable not configured");
+      logger.error(
+        "EXA_API_KEY environment variable not configured for Exa search",
+      );
       return NextResponse.json(
         {
           success: false,
@@ -117,20 +118,22 @@ export async function POST(
     };
 
     // Analyze image with Gemini AI
-    if (!isProduction) {
-      console.log(
-        `Analyzing image: ${imageFile.name} (${imageFile.size} bytes) with precision mode: ${precisionMode}, Exa search: ${exaSearch}`,
-      );
-    }
+    logger.info("Starting image analysis", {
+      fileName: imageFile.name,
+      fileSize: imageFile.size,
+      precisionMode,
+      exaSearch,
+      municipalityCode,
+    });
 
     const analysisResult = await analyzeItemImage(base64Image, analysisOptions);
 
     // Log successful analysis
-    if (!isProduction) {
-      console.log(
-        `Analysis completed for ${imageFile.name}: ${analysisResult.nameEnglishSpecific} (${analysisResult.category})`,
-      );
-    }
+    logger.info("Analysis completed successfully", {
+      fileName: imageFile.name,
+      itemName: analysisResult.nameEnglishSpecific,
+      category: analysisResult.category,
+    });
 
     // Return structured response with Exa metadata
     const enhancedResult = analysisResult as typeof analysisResult & {
@@ -151,77 +154,80 @@ export async function POST(
     );
   } catch (error) {
     // Log detailed error for debugging
-    console.error("Image analysis API error:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined,
-      timestamp: new Date().toISOString(),
-    });
+    logger.error("Image analysis API error", error);
 
     // Handle specific error types
     if (error instanceof Error) {
-      // Gemini API errors
-      if (error.message.includes("API key")) {
+      // Check if it's already a user-friendly Japanese message from Gemini
+      const message = error.message;
+      if (
+        message.includes("AI") ||
+        message.includes("分析") ||
+        message.includes("エラー")
+      ) {
         return NextResponse.json(
           {
             success: false,
-            error: "Authentication failed. Please check API configuration.",
+            error: message,
+          },
+          { status: 503 },
+        );
+      }
+
+      // Gemini API errors
+      if (message.includes("API key")) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "AI設定にエラーがあります。管理者にお問い合わせください。",
           },
           { status: 500 },
         );
       }
 
       // Rate limiting errors
-      if (error.message.includes("quota") || error.message.includes("rate")) {
+      if (message.includes("quota") || message.includes("rate")) {
         return NextResponse.json(
           {
             success: false,
             error:
-              "Service temporarily unavailable due to high demand. Please try again in a few moments.",
+              "AI分析の利用制限に達しました。少し時間をおいてから再度お試しください。",
           },
           { status: 429 },
         );
       }
 
       // Image processing errors
-      if (
-        error.message.includes("base64") ||
-        error.message.includes("compression")
-      ) {
+      if (message.includes("base64") || message.includes("compression")) {
         return NextResponse.json(
           {
             success: false,
             error:
-              "Failed to process image. Please try a different image or format.",
+              "画像の処理に失敗しました。別の画像または形式でお試しください。",
           },
           { status: 400 },
         );
       }
 
       // Network/timeout errors
-      if (
-        error.message.includes("network") ||
-        error.message.includes("timeout")
-      ) {
+      if (message.includes("network") || message.includes("timeout")) {
         return NextResponse.json(
           {
             success: false,
             error:
-              "Network error occurred. Please check your connection and try again.",
+              "ネットワークエラーが発生しました。接続を確認して再度お試しください。",
           },
           { status: 503 },
         );
       }
 
       // Analysis/parsing errors
-      if (
-        error.message.includes("analysis") ||
-        error.message.includes("parsing")
-      ) {
+      if (message.includes("analysis") || message.includes("parsing")) {
         return NextResponse.json(
           {
             success: false,
             error:
-              "Failed to analyze image. The image might be unclear or not contain identifiable items.",
+              "画像を分析できませんでした。写真が不鮮明か、識別可能な商品が含まれていない可能性があります。",
           },
           { status: 422 },
         );
@@ -233,7 +239,7 @@ export async function POST(
       {
         success: false,
         error:
-          "An unexpected error occurred during image analysis. Please try again.",
+          "画像分析中に予期しないエラーが発生しました。時間をおいてから再度お試しください。",
       },
       { status: 500 },
     );
@@ -266,7 +272,7 @@ export async function GET(): Promise<NextResponse> {
       { status: 200 },
     );
   } catch (error) {
-    console.error("API health check failed:", error);
+    logger.error("API health check failed", error);
     return NextResponse.json(
       {
         status: "error",

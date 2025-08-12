@@ -8,6 +8,7 @@ import {
 } from "@google/generative-ai";
 import type { DeclutterItem } from "./types";
 import { searchJapaneseMarket, searchDisposalInfo, getExaClient } from "./exa";
+import { logger, geminiLogger } from "./logger";
 
 // Model configuration - Using latest stable models
 // see: https://ai.google.dev/gemini-api/docs/models
@@ -318,9 +319,7 @@ class GeminiClient {
         ? PRECISION_MODEL
         : this.config.model;
 
-      if (options.exaSearch) {
-        console.log("Exa Search enabled with model:", modelName);
-      }
+      geminiLogger.analysisStarted(modelName, options);
 
       // Perform Exa search if enabled
       let webSearchContext = "";
@@ -361,7 +360,7 @@ class GeminiClient {
           const itemName = itemNameMatch ? itemNameMatch[1].trim() : "商品";
           const category = categoryMatch ? categoryMatch[1].trim() : "";
 
-          console.log("Quick analysis for Exa search:", { itemName, category });
+          logger.debug("Quick analysis for Exa search", { itemName, category });
 
           // Search for market information with relaxed parameters for MVP
           const marketResults = await searchJapaneseMarket(itemName, category, {
@@ -386,16 +385,15 @@ class GeminiClient {
             ...disposalResults,
           ]);
 
-          console.log("Exa search completed:", {
+          logger.info("Exa search completed", {
             marketResults: marketResults.length,
             disposalResults: disposalResults.length,
             contextLength: webSearchContext.length,
           });
         } catch (error) {
-          console.error(
-            "Exa search failed, continuing without web data:",
-            error,
-          );
+          logger.warn("Exa search failed, continuing without web data", {
+            error: error instanceof Error ? error.message : error,
+          });
           webSearchContext =
             "ウェブ検索エラー: 最新の市場情報の取得に失敗しました。既知の情報で分析を続行します。";
         }
@@ -459,6 +457,9 @@ class GeminiClient {
             message.includes("rate") ||
             message.includes("timeout") ||
             message.includes("temporar");
+
+          geminiLogger.retryAttempt(attempt + 1, message);
+
           if (!shouldRetry) break;
           const backoffMs = 250 * Math.pow(2, attempt); // 250ms, 500ms, 1000ms
           await new Promise((r) => setTimeout(r, backoffMs));
@@ -476,28 +477,31 @@ class GeminiClient {
 
       try {
         text = response.text();
+        if (!text) {
+          throw new Error("Empty response from Gemini API");
+        }
       } catch (error) {
-        console.error("Failed to get text from Gemini response:", error);
-        console.error("Response object:", response);
-        throw new Error(
-          `Failed to parse Gemini response: ${error instanceof Error ? error.message : "Unknown error"}`,
-        );
-      }
+        // Log error details for debugging
+        geminiLogger.apiError("Failed to get text from response", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          hasResponse: !!response,
+        });
 
-      if (!text) {
-        console.error("Empty text from Gemini, response object:", response);
-        throw new Error("Empty response from Gemini API");
+        // Throw user-friendly error
+        throw new Error(
+          error instanceof Error &&
+          error.message === "Empty response from Gemini API"
+            ? error.message
+            : `Failed to parse Gemini response: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
       }
 
       // Debug logging for response
-      if (process.env.NODE_ENV !== "production") {
-        console.log(
-          "Raw Gemini response (first 500 chars):",
-          text.substring(0, 500),
-        );
-        console.log("Response length:", text.length);
-        console.log("Exa search mode:", options.exaSearch);
-      }
+      logger.debug("Gemini response received", {
+        responseLength: text.length,
+        exaSearchMode: options.exaSearch,
+        firstChars: text.substring(0, 100),
+      });
 
       // Parse and validate the JSON response
       // With Exa search, we always get structured JSON responses
@@ -530,15 +534,58 @@ class GeminiClient {
             : GEMINI_CONSTANTS.ESTIMATED_COST_PER_ANALYSIS.standard,
       };
 
+      // Log successful analysis
+      geminiLogger.analysisCompleted(
+        parsedData.nameEnglishSpecific || "Unknown item",
+        parsedData.category || "Unknown",
+      );
+
       return enhancedResult;
     } catch (error) {
-      console.error("Gemini API analysis failed:", error);
+      geminiLogger.analysisError(error, { options });
 
-      // Re-throw with more context
+      // Re-throw with user-friendly messages
       if (error instanceof Error) {
-        throw new Error(`Image analysis failed: ${error.message}`);
+        const message = error.message.toLowerCase();
+
+        // Handle specific Gemini API errors with friendly messages
+        if (message.includes("empty response")) {
+          throw new Error(
+            "AIサービスから応答がありませんでした。しばらく待ってから再度お試しください。",
+          );
+        }
+
+        if (message.includes("quota") || message.includes("rate limit")) {
+          throw new Error(
+            "AI分析の利用制限に達しました。少し時間をおいてから再度お試しください。",
+          );
+        }
+
+        if (message.includes("timeout")) {
+          throw new Error(
+            "AI分析がタイムアウトしました。ネットワーク接続を確認して再度お試しください。",
+          );
+        }
+
+        if (message.includes("api key") || message.includes("authentication")) {
+          throw new Error(
+            "AI設定にエラーがあります。管理者にお問い合わせください。",
+          );
+        }
+
+        if (message.includes("invalid") || message.includes("parse")) {
+          throw new Error(
+            "AIの応答を処理できませんでした。別の写真で再度お試しください。",
+          );
+        }
+
+        // Generic error with original message for debugging
+        throw new Error(
+          `画像分析中にエラーが発生しました。時間をおいてから再度お試しください。`,
+        );
       }
-      throw new Error("Image analysis failed: Unknown error");
+
+      throw new Error("画像分析中に予期しないエラーが発生しました。");
     }
   }
 
@@ -650,17 +697,17 @@ class GeminiClient {
       // Validate enums
       const validConditions = ["new", "like_new", "good", "fair", "poor"];
       if (!validConditions.includes(data.condition)) {
-        console.warn(
-          `Invalid condition: ${data.condition}, defaulting to 'good'`,
-        );
+        logger.warn("Invalid condition value, defaulting to 'good'", {
+          received: data.condition,
+        });
         data.condition = "good";
       }
 
       const validActions = ["keep", "trash", "thrift", "online", "donate"];
       if (!validActions.includes(data.recommendedAction)) {
-        console.warn(
-          `Invalid recommended action: ${data.recommendedAction}, defaulting to 'keep'`,
-        );
+        logger.warn("Invalid recommended action, defaulting to 'keep'", {
+          received: data.recommendedAction,
+        });
         data.recommendedAction = "keep";
       }
 
@@ -688,10 +735,9 @@ class GeminiClient {
 
       return data as AnalysisResult;
     } catch (error) {
-      console.error("Response parsing failed:", error);
-      if (process.env.NODE_ENV !== "production") {
-        console.error("Failed to parse JSON:", jsonText.substring(0, 200));
-      }
+      logger.error("Response parsing failed", error, {
+        responsePreview: jsonText.substring(0, 200),
+      });
       throw new Error(
         `Invalid response format: ${error instanceof Error ? error.message : "Unknown parsing error"}`,
       );
@@ -712,7 +758,7 @@ class GeminiClient {
 
       return Boolean(response.text());
     } catch (error) {
-      console.error("Gemini connection test failed:", error);
+      logger.error("Gemini connection test failed", error);
       return false;
     }
   }
@@ -764,7 +810,7 @@ export async function testGeminiConnection(): Promise<boolean> {
     const client = getGeminiClient();
     return client.testConnection();
   } catch (error) {
-    console.error("Failed to test Gemini connection:", error);
+    logger.error("Failed to test Gemini connection", error);
     return false;
   }
 }
