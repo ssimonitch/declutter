@@ -35,25 +35,12 @@ export default function CameraStream({
     try {
       const allDevices = await navigator.mediaDevices.enumerateDevices();
 
-      // Debug logging
-      console.log(
-        "All media devices detected:",
-        allDevices.map((d) => ({
-          kind: d.kind,
-          label: d.label,
-          deviceId: d.deviceId,
-          groupId: d.groupId,
-        })),
-      );
-
       const videoDevices = allDevices
         .filter((device) => device.kind === "videoinput")
         .map((device) => ({
           deviceId: device.deviceId,
           label: device.label || `Camera ${device.deviceId.slice(0, 5)}...`,
         }));
-
-      console.log("Video devices:", videoDevices);
 
       setDevices(videoDevices);
 
@@ -308,13 +295,15 @@ export default function CameraStream({
   }, [startCamera]);
 
   return (
-    <div className={`fixed inset-0 bg-black z-50 flex flex-col ${className}`}>
+    <div
+      className={`fixed inset-0 bg-black z-50 flex flex-col safe-area-inset ${className}`}
+    >
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-4 z-10">
+      <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-4 z-10 safe-top">
         <div className="flex items-center justify-between">
           <button
             onClick={onClose}
-            className="text-white p-2 hover:bg-white/20 rounded-full transition-colors"
+            className="text-white p-3 hover:bg-white/20 rounded-full transition-colors min-h-[44px] min-w-[44px] touch-manipulation"
             aria-label="閉じる"
           >
             <svg
@@ -337,7 +326,7 @@ export default function CameraStream({
             <select
               value={selectedDeviceId}
               onChange={(e) => setSelectedDeviceId(e.target.value)}
-              className="bg-black/50 text-white px-3 py-1 rounded-lg text-sm border border-white/30"
+              className="bg-black/50 text-white px-3 py-2 rounded-lg text-base border border-white/30 touch-manipulation"
             >
               {devices.map((device) => (
                 <option key={device.deviceId} value={device.deviceId}>
@@ -417,11 +406,11 @@ export default function CameraStream({
             {/* Viewfinder overlay */}
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-64 h-64 sm:w-80 sm:h-80 border-2 border-white/50 rounded-lg">
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white rounded-tl-lg" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-white rounded-tr-lg" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-white rounded-bl-lg" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white rounded-br-lg" />
+                <div className="w-72 h-72 sm:w-80 sm:h-80 max-w-[90vw] max-h-[50vh] border-2 border-white/50 rounded-lg">
+                  <div className="absolute top-0 left-0 w-6 h-6 sm:w-8 sm:h-8 border-t-2 border-l-2 border-white rounded-tl-lg" />
+                  <div className="absolute top-0 right-0 w-6 h-6 sm:w-8 sm:h-8 border-t-2 border-r-2 border-white rounded-tr-lg" />
+                  <div className="absolute bottom-0 left-0 w-6 h-6 sm:w-8 sm:h-8 border-b-2 border-l-2 border-white rounded-bl-lg" />
+                  <div className="absolute bottom-0 right-0 w-6 h-6 sm:w-8 sm:h-8 border-b-2 border-r-2 border-white rounded-br-lg" />
                 </div>
               </div>
             </div>
@@ -431,13 +420,13 @@ export default function CameraStream({
 
       {/* Controls */}
       {!error && !isLoading && (
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-8">
-          <div className="flex items-center justify-center space-x-8">
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 sm:p-8 safe-bottom">
+          <div className="flex items-center justify-center space-x-8 sm:space-x-12">
             {/* Switch camera button (primarily for mobile) */}
             {devices.length > 1 && (
               <button
                 onClick={switchCamera}
-                className="text-white p-3 hover:bg-white/20 rounded-full transition-colors"
+                className="text-white p-4 hover:bg-white/20 rounded-full transition-colors min-h-[56px] min-w-[56px] touch-manipulation"
                 aria-label="カメラを切り替え"
               >
                 <svg
@@ -459,10 +448,10 @@ export default function CameraStream({
             {/* Capture button */}
             <button
               onClick={capturePhoto}
-              className="bg-white hover:bg-gray-100 text-black w-20 h-20 rounded-full flex items-center justify-center transition-colors shadow-lg"
+              className="bg-white hover:bg-gray-100 active:bg-gray-200 text-black w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-colors shadow-lg touch-manipulation"
               aria-label="撮影"
             >
-              <div className="w-16 h-16 rounded-full border-4 border-black" />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-4 border-black" />
             </button>
 
             {/* Placeholder for balance */}

@@ -235,7 +235,7 @@ export default function PhotoCapture({
   };
 
   return (
-    <div className={`w-full max-w-md mx-auto ${className}`}>
+    <div className={`w-full max-w-none sm:max-w-md sm:mx-auto ${className}`}>
       {/* Storage Warning */}
       {storageWarning.show && (
         <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
@@ -264,15 +264,15 @@ export default function PhotoCapture({
 
       {/* Quality Toggle */}
       <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">画質設定</h3>
-        <div className="flex space-x-2">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">画質設定</h3>
+        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => handleQualityChange("standard")}
             disabled={disabled || state.isProcessing}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+            className={`py-3 px-4 rounded-lg text-sm font-medium transition-colors min-h-[48px] touch-manipulation ${
               quality === "standard"
                 ? "bg-blue-500 text-white"
-                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 active:bg-gray-100"
             }`}
           >
             標準 (1MB)
@@ -280,10 +280,10 @@ export default function PhotoCapture({
           <button
             onClick={() => handleQualityChange("lite")}
             disabled={disabled || state.isProcessing}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+            className={`py-3 px-4 rounded-lg text-sm font-medium transition-colors min-h-[48px] touch-manipulation ${
               quality === "lite"
                 ? "bg-blue-500 text-white"
-                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 active:bg-gray-100"
             }`}
           >
             軽量 (0.5MB)
@@ -292,10 +292,10 @@ export default function PhotoCapture({
       </div>
 
       {/* Main Capture Area */}
-      <div className="border-2 border-dashed border-gray-300 rounded-lg">
+      <div className="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
         {!state.previewUrl ? (
           // Upload Button - Inspired by Mercari design
-          <div className="p-8 text-center">
+          <div className="p-6 sm:p-8 text-center">
             <div className="mx-auto w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mb-4">
               <svg
                 className="w-8 h-8 text-white"
@@ -323,11 +323,11 @@ export default function PhotoCapture({
             <p className="text-sm text-gray-500 mb-4">
               商品を撮影するか、ギャラリーから写真を選択してください
             </p>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <button
                 onClick={handleCameraClick}
                 disabled={disabled || state.isProcessing}
-                className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white font-medium py-3 px-6 rounded-lg text-base transition-colors flex items-center justify-center"
+                className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white font-medium py-4 px-6 rounded-lg text-base transition-colors flex items-center justify-center min-h-[52px] touch-manipulation"
               >
                 <svg
                   className="w-5 h-5 mr-2"
@@ -353,7 +353,7 @@ export default function PhotoCapture({
               <button
                 onClick={handleFileInputClick}
                 disabled={disabled || state.isProcessing}
-                className="w-full bg-white hover:bg-gray-50 disabled:bg-gray-300 text-gray-700 font-medium py-3 px-6 rounded-lg text-base transition-colors border-2 border-gray-300 flex items-center justify-center"
+                className="w-full bg-white hover:bg-gray-50 disabled:bg-gray-300 text-gray-700 font-medium py-4 px-6 rounded-lg text-base transition-colors border-2 border-gray-300 flex items-center justify-center min-h-[52px] touch-manipulation active:bg-gray-100"
               >
                 {state.isProcessing ? (
                   <div className="flex items-center justify-center">
@@ -408,7 +408,7 @@ export default function PhotoCapture({
               <img
                 src={state.previewUrl}
                 alt="Preview"
-                className="w-full h-64 object-cover rounded-lg"
+                className="w-full h-48 sm:h-64 object-cover rounded-lg"
               />
               {state.isProcessing && (
                 <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
@@ -463,22 +463,22 @@ export default function PhotoCapture({
             )}
 
             {/* Action Buttons */}
-            <div className="flex space-x-2">
-              <button
-                onClick={resetState}
-                disabled={disabled || state.isProcessing}
-                className="flex-1 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-300 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
-              >
-                やり直す
-              </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 onClick={handleCapture}
                 disabled={
                   disabled || state.isProcessing || !state.compressedBlob
                 }
-                className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
+                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white py-4 px-6 rounded-lg text-base font-medium transition-colors min-h-[52px] touch-manipulation order-1 sm:order-2"
               >
                 この写真を使う
+              </button>
+              <button
+                onClick={resetState}
+                disabled={disabled || state.isProcessing}
+                className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-300 text-white py-4 px-6 rounded-lg text-base font-medium transition-colors min-h-[52px] touch-manipulation order-2 sm:order-1"
+              >
+                やり直す
               </button>
             </div>
           </div>
@@ -497,7 +497,7 @@ export default function PhotoCapture({
       />
 
       {/* Help Text */}
-      <div className="mt-4 text-center">
+      <div className="mt-4 text-center px-2">
         <p className="text-xs text-gray-500">
           対応形式: JPEG, PNG, WebP (最大10MB)
         </p>

@@ -92,16 +92,8 @@ export default function CapturePage() {
           throw new Error(result.error || "分析に失敗しました");
         }
 
-        // Log Exa search status for user feedback
-        if (state.exaSearch && result.exaSearchStatus) {
-          console.log("Exa search status:", {
-            status: result.exaSearchStatus,
-            results: result.exaResultCount,
-            cost: result.exaEstimatedCost
-              ? `$${result.exaEstimatedCost.toFixed(4)}`
-              : "N/A",
-          });
-        }
+        // Exa search status available but not logged in production
+        // Status: result.exaSearchStatus, Results: result.exaResultCount
 
         // Store photo and thumbnail for the edit page
         const tempPhotoData = {
@@ -117,8 +109,6 @@ export default function CapturePage() {
         const tempId = `${Date.now()}`;
         const storageKey = `declutter_temp_${tempId}`;
 
-        console.log("Storing temp data with key:", storageKey);
-
         sessionStorage.setItem(
           storageKey,
           JSON.stringify({
@@ -130,7 +120,6 @@ export default function CapturePage() {
         );
 
         // Navigate to edit page
-        console.log("Navigating to edit page with tempId:", tempId);
         router.push(`/edit/new?temp=${tempId}`);
       } catch (error) {
         console.error("Failed to analyze photo:", error);
@@ -174,11 +163,13 @@ export default function CapturePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="w-full max-w-none sm:max-w-2xl sm:mx-auto px-4 py-4 sm:px-6 sm:py-6">
         {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">商品を追加</h1>
-          <p className="text-gray-600">
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+            商品を追加
+          </h1>
+          <p className="text-gray-600 text-base leading-relaxed px-2">
             写真を撮影すると、自動で商品情報を分析します
           </p>
         </div>

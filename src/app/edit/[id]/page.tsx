@@ -56,16 +56,9 @@ export default function EditPage() {
         if (state.isNewItem && tempId) {
           // Load from temporary session storage (new item from capture)
           const storageKey = `declutter_temp_${tempId}`;
-          console.log("Looking for temp data with key:", storageKey);
-          console.log(
-            "Available keys in sessionStorage:",
-            Object.keys(sessionStorage),
-          );
 
           const tempDataStr = sessionStorage.getItem(storageKey);
           if (!tempDataStr) {
-            console.error("Temp data not found. tempId:", tempId);
-            console.error("Storage key:", storageKey);
             throw new Error(
               "Temporary data not found. Please go back and capture the photo again.",
             );
@@ -170,18 +163,13 @@ export default function EditPage() {
   }, [itemId, tempId, state.isNewItem, hasLoaded]);
 
   // Handle form save
-  const handleSave = useCallback(
-    (savedItemId: string) => {
-      console.log("Item saved with ID:", savedItemId);
-      // Clean up temporary storage after successful save
-      if (state.tempStorageKey) {
-        console.log("Cleaning up temp storage:", state.tempStorageKey);
-        sessionStorage.removeItem(state.tempStorageKey);
-      }
-      router.push("/dashboard");
-    },
-    [router, state.tempStorageKey],
-  );
+  const handleSave = useCallback(() => {
+    // Clean up temporary storage after successful save
+    if (state.tempStorageKey) {
+      sessionStorage.removeItem(state.tempStorageKey);
+    }
+    router.push("/dashboard");
+  }, [router, state.tempStorageKey]);
 
   // Handle form cancel
   const handleCancel = useCallback(() => {

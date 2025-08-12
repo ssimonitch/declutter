@@ -418,12 +418,12 @@ export default function ItemsTable({
 
     return (
       <div
-        className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+        className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
         onClick={() => onRowClick?.(item)}
       >
-        <div className="flex space-x-3">
+        <div className="flex space-x-4">
           {/* Thumbnail */}
-          <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+          <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
             {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- Blob URLs not supported by Next.js Image
               <img
@@ -434,7 +434,7 @@ export default function ItemsTable({
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">
                 <svg
-                  className="w-8 h-8"
+                  className="w-10 h-10"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -452,17 +452,18 @@ export default function ItemsTable({
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between mb-2">
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-medium text-gray-900 truncate">
-                  {item.nameEnglishSpecific}
+                <h3 className="text-base font-medium text-gray-900 line-clamp-2 leading-5">
+                  {item.nameEnglishSpecific ||
+                    item.nameJapaneseSpecific ||
+                    "商品名未設定"}
                 </h3>
-                {item.nameJapaneseSpecific && (
-                  <p className="text-sm text-gray-500 truncate">
+                {item.nameJapaneseSpecific && item.nameEnglishSpecific && (
+                  <p className="text-sm text-gray-500 line-clamp-1 mt-1">
                     {item.nameJapaneseSpecific}
                   </p>
                 )}
-                <p className="text-xs text-gray-500 mt-1">{item.category}</p>
               </div>
               <input
                 type="checkbox"
@@ -479,13 +480,23 @@ export default function ItemsTable({
                     return next;
                   });
                 }}
-                className="rounded border-gray-300"
+                className="rounded border-gray-300 w-5 h-5 flex-shrink-0 mt-1 touch-manipulation"
               />
             </div>
 
-            <div className="flex items-center justify-between mt-2">
-              <div className="text-xs">
-                {/* Display appropriate price based on action */}
+            {/* Category and Date */}
+            <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+              <span className="bg-gray-100 px-2 py-1 rounded-full">
+                {item.category}
+              </span>
+              <span>
+                {new Date(item.updatedAt).toLocaleDateString("ja-JP")}
+              </span>
+            </div>
+
+            {/* Price and Action */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm min-w-0 flex-1">
                 {(() => {
                   const action = item.recommendedAction;
                   let displayPrice = item.onlineAuctionPriceJPY;
@@ -501,45 +512,28 @@ export default function ItemsTable({
                     priceLabel = "リサイクル";
                     priceColor = "text-yellow-700";
                   } else {
-                    // Default to online price for other actions
                     displayPrice = item.onlineAuctionPriceJPY;
                     priceLabel = "参考価格";
                     priceColor = "text-gray-700";
                   }
 
-                  const confidenceColor =
-                    displayPrice.confidence >= 0.7
-                      ? "text-green-600"
-                      : displayPrice.confidence >= 0.4
-                        ? "text-yellow-600"
-                        : "text-red-600";
-
                   return (
-                    <>
-                      <div className={`font-medium ${priceColor}`}>
+                    <div>
+                      <div className={`font-medium ${priceColor} truncate`}>
                         ¥{displayPrice.low.toLocaleString("ja-JP")} - ¥
                         {displayPrice.high.toLocaleString("ja-JP")}
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div className="text-gray-500">{priceLabel}</div>
-                        <div className={confidenceColor}>
-                          信頼度: {Math.round(displayPrice.confidence * 100)}%
-                        </div>
-                      </div>
-                    </>
+                      <div className="text-xs text-gray-500">{priceLabel}</div>
+                    </div>
                   );
                 })()}
               </div>
               <span
-                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color}`}
+                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${config.color} ml-3 flex-shrink-0`}
               >
                 <span className="mr-1">{config.icon}</span>
                 {config.label}
               </span>
-            </div>
-
-            <div className="text-xs text-gray-500 mt-1">
-              {new Date(item.updatedAt).toLocaleDateString("ja-JP")}
             </div>
           </div>
         </div>
@@ -580,7 +574,7 @@ export default function ItemsTable({
     <div className={`space-y-4 ${className}`}>
       {/* Filters and Search */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {/* Search */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -590,8 +584,8 @@ export default function ItemsTable({
               type="text"
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              placeholder="商品名や説明で検索（入力中は遅延検索）"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="商品名や説明で検索"
+              className="w-full px-3 py-3 border border-gray-300 rounded-md text-base text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
             />
           </div>
 
@@ -603,7 +597,7 @@ export default function ItemsTable({
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-3 border border-gray-300 rounded-md text-base text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
             >
               <option value="">すべて</option>
               {Object.entries(actionConfig).map(([value, config]) => (
@@ -622,7 +616,7 @@ export default function ItemsTable({
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-3 border border-gray-300 rounded-md text-base text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
             >
               <option value="">すべて</option>
               {categories.map((category) => (
@@ -635,11 +629,11 @@ export default function ItemsTable({
         </div>
 
         {/* Results count */}
-        <div className="mt-3 flex items-center justify-between text-sm text-gray-500">
-          <div>
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-gray-500">
+          <div className="text-center sm:text-left">
             {data.length}件の商品
             {Object.keys(rowSelection).length > 0 && (
-              <span className="ml-2 text-blue-600">
+              <span className="ml-2 text-blue-600 font-medium">
                 ({Object.keys(rowSelection).length}件選択中)
               </span>
             )}
@@ -651,7 +645,7 @@ export default function ItemsTable({
                 setActionFilter("");
                 setCategoryFilter("");
               }}
-              className="text-blue-600 hover:text-blue-800"
+              className="text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors min-h-[44px] touch-manipulation text-center"
             >
               フィルターをクリア
             </button>
@@ -753,32 +747,34 @@ export default function ItemsTable({
 
       {/* Pagination */}
       {table.getPageCount() > 1 && (
-        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-3">
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <span>
-              ページ {table.getState().pagination.pageIndex + 1} /{" "}
-              {table.getPageCount()}
-            </span>
-            <span>•</span>
-            <span>
-              {table.getRowModel().rows.length} / {data.length} 件
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-            >
-              前へ
-            </button>
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-            >
-              次へ
-            </button>
+        <div className="bg-white border border-gray-200 rounded-lg px-4 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="text-sm text-gray-500 text-center sm:text-left">
+              <span className="block sm:inline">
+                ページ {table.getState().pagination.pageIndex + 1} /{" "}
+                {table.getPageCount()}
+              </span>
+              <span className="hidden sm:inline mx-2">•</span>
+              <span className="block sm:inline">
+                {table.getRowModel().rows.length} / {data.length} 件
+              </span>
+            </div>
+            <div className="flex items-center justify-center space-x-3">
+              <button
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors min-h-[44px] touch-manipulation flex-1 sm:flex-none"
+              >
+                前へ
+              </button>
+              <button
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors min-h-[44px] touch-manipulation flex-1 sm:flex-none"
+              >
+                次へ
+              </button>
+            </div>
           </div>
         </div>
       )}

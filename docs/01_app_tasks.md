@@ -153,7 +153,6 @@
 - [ ] Add success toast notifications
 - [ ] Add confirmation dialogs for destructive actions
 - [ ] Format all prices with ¥ symbol and commas
-- [ ] Display both English and Japanese names where available
 
 ## Testing & Validation
 

@@ -33,6 +33,13 @@ export class DeclutterDatabase extends Dexie {
 // Lazy database initialization for SSR safety
 let dbInstance: DeclutterDatabase | null = null;
 
+const isTestEnvironment =
+  process.env.NODE_ENV === "test" ||
+  process.env.VITEST === "true" ||
+  process.env.CI === "true";
+
+const cloudDatabaseUrl = process.env.NEXT_PUBLIC_DEXIE_CLOUD_DATABASE_URL;
+
 /**
  * Get database instance with lazy initialization.
  * Only initializes in browser environment to prevent SSR issues.
@@ -45,11 +52,11 @@ export function getDb(): DeclutterDatabase {
 
     dbInstance = new DeclutterDatabase();
 
-    // Only configure cloud if it's available and environment variable is set
-    if (process.env.NEXT_PUBLIC_DEXIE_CLOUD_DATABASE_URL && dbInstance.cloud) {
+    // Only configure cloud if it's available, environment variable is set, and not in test
+    if (cloudDatabaseUrl && dbInstance.cloud && !isTestEnvironment) {
       try {
         dbInstance.cloud.configure({
-          databaseUrl: process.env.NEXT_PUBLIC_DEXIE_CLOUD_DATABASE_URL,
+          databaseUrl: cloudDatabaseUrl,
           requireAuth: true, // TODO: implement custom auth after testing other features
         });
       } catch (error) {
@@ -142,12 +149,15 @@ export async function createRealm(
           owner: currentUser.userId,
         });
 
-        // Add the creator as the owner member
+        // Add the creator as the owner member with a special ID to prevent duplicates
         await db.members.add({
+          id: `mmb-owner-${newRealmId}`, // Use a deterministic ID for owner
           realmId: newRealmId,
           userId: currentUser.userId,
           name: currentUser.name || "Owner",
           email: currentUser.email,
+          roles: ["owner"],
+          accepted: new Date(),
         });
 
         return newRealmId;
@@ -293,51 +303,58 @@ export async function getUserRealms(): Promise<RealmSummary[]> {
       return [];
     }
 
-    // Find all realms where the user is a member or owner
+    // Use a Map to track unique realms by realmId
+    const realmMap = new Map<string, RealmSummary>();
+
+    // Find all realms where the user is a member
     const userMemberships = await db.members
       .where("userId")
       .equals(currentUser.userId)
       .toArray();
 
-    // Get all realms and filter by owner since owner might not be indexed
-    const allRealms = await db.realms.toArray();
-    const ownedRealms = allRealms.filter(
-      (realm) => realm.owner === currentUser.userId,
-    );
+    // Get unique realm IDs from memberships
+    const memberRealmIds = [...new Set(userMemberships.map((m) => m.realmId))];
 
-    const realmSummaries: RealmSummary[] = [];
-
-    // Process member realms
-    for (const membership of userMemberships) {
-      const realm = await db.realms.get(membership.realmId);
+    // Process realms where user is a member
+    for (const realmId of memberRealmIds) {
+      const realm = await db.realms.get(realmId);
       if (!realm) continue;
 
       const allMembers = await db.members
         .where("realmId")
-        .equals(membership.realmId)
+        .equals(realmId)
         .toArray();
 
-      const itemCount = await db.items
-        .where("realmId")
-        .equals(membership.realmId)
-        .count();
+      // Deduplicate members by userId (keep first occurrence)
+      const uniqueMembers = allMembers.filter(
+        (member, index, self) =>
+          index === self.findIndex((m) => m.userId === member.userId),
+      );
 
-      realmSummaries.push({
+      const itemCount = await db.items.where("realmId").equals(realmId).count();
+
+      realmMap.set(realmId, {
         realm,
-        members: allMembers,
+        members: uniqueMembers,
         itemCount,
         isOwner: realm.owner === currentUser.userId,
       });
     }
 
-    // Process owned realms (in case there's no explicit membership record)
+    // Also check for owned realms (in case there's no explicit membership record)
+    const allRealms = await db.realms.toArray();
+    const ownedRealms = allRealms.filter(
+      (realm) => realm.owner === currentUser.userId,
+    );
+
     for (const realm of ownedRealms) {
-      // Skip if already processed as a member
-      if (
-        realmSummaries.some(
-          (summary) => summary.realm.realmId === realm.realmId,
-        )
-      ) {
+      // Skip if already processed
+      if (realmMap.has(realm.realmId)) {
+        // Update isOwner flag if needed
+        const existing = realmMap.get(realm.realmId)!;
+        if (!existing.isOwner) {
+          existing.isOwner = true;
+        }
         continue;
       }
 
@@ -346,20 +363,26 @@ export async function getUserRealms(): Promise<RealmSummary[]> {
         .equals(realm.realmId)
         .toArray();
 
+      // Deduplicate members by userId
+      const uniqueMembers = allMembers.filter(
+        (member, index, self) =>
+          index === self.findIndex((m) => m.userId === member.userId),
+      );
+
       const itemCount = await db.items
         .where("realmId")
         .equals(realm.realmId)
         .count();
 
-      realmSummaries.push({
+      realmMap.set(realm.realmId, {
         realm,
-        members: allMembers,
+        members: uniqueMembers,
         itemCount,
         isOwner: true,
       });
     }
 
-    return realmSummaries;
+    return Array.from(realmMap.values());
   } catch (error) {
     console.error("Error getting user realms:", error);
     throw new Error("Failed to get user realms");

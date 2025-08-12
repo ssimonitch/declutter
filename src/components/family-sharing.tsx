@@ -148,13 +148,15 @@ export default function FamilySharing({
 
   return (
     <div
-      className={`bg-white rounded-lg shadow p-6 space-y-6 ${className || ""}`}
+      className={`bg-white rounded-lg shadow p-4 sm:p-6 space-y-4 sm:space-y-6 ${className || ""}`}
     >
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">Family Sharing</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+          Family Sharing
+        </h2>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 touch-manipulation"
         >
           Create Family Group
         </button>
@@ -181,8 +183,11 @@ export default function FamilySharing({
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="private">My Private Items</option>
-          {realms.map((summary) => (
-            <option key={summary.realm.realmId} value={summary.realm.realmId}>
+          {realms.map((summary, index) => (
+            <option
+              key={`${summary.realm.realmId}-${index}`}
+              value={summary.realm.realmId}
+            >
               {summary.realm.name} ({summary.itemCount} items)
             </option>
           ))}
@@ -233,70 +238,86 @@ export default function FamilySharing({
             Family Groups
           </h3>
           <div className="space-y-4">
-            {realms.map((summary) => (
-              <div
-                key={summary.realm.realmId}
-                className="border border-gray-200 rounded-md p-4"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h4 className="font-medium text-gray-900">
-                      {summary.realm.name}
-                    </h4>
-                    {summary.realm.description && (
-                      <p className="text-sm text-gray-600">
-                        {summary.realm.description}
-                      </p>
-                    )}
-                    <p className="text-sm text-gray-500">
-                      {summary.itemCount} items • {summary.members.length}{" "}
-                      members
-                      {summary.isOwner && " • You are the owner"}
-                    </p>
-                  </div>
-                  {summary.isOwner && (
-                    <button
-                      onClick={() => setShowInviteForm(summary.realm.realmId)}
-                      className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-                    >
-                      Invite
-                    </button>
-                  )}
-                </div>
-
-                {/* Members List */}
-                <div className="space-y-2">
-                  {summary.members.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                    >
-                      <div>
-                        <span className="font-medium">{member.name}</span>
-                        <span className="text-sm text-gray-600 ml-2">
-                          ({member.email})
-                        </span>
-                        {member.roles?.includes("owner") && (
-                          <span className="ml-2 bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
-                            Owner
-                          </span>
-                        )}
-                      </div>
-                      {summary.isOwner && !member.roles?.includes("owner") && (
-                        <button
-                          onClick={() =>
-                            member.id && handleRemoveMember(member.id)
-                          }
-                          className="text-red-600 text-sm hover:text-red-800"
-                        >
-                          Remove
-                        </button>
+            {realms
+              .filter(
+                (summary, index, self) =>
+                  self.findIndex(
+                    (s) => s.realm.realmId === summary.realm.realmId,
+                  ) === index,
+              )
+              .map((summary) => (
+                <div
+                  key={summary.realm.realmId}
+                  className="border border-gray-200 rounded-md p-4"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-medium text-gray-900">
+                        {summary.realm.name}
+                      </h4>
+                      {summary.realm.description && (
+                        <p className="text-sm text-gray-600">
+                          {summary.realm.description}
+                        </p>
                       )}
+                      <p className="text-sm text-gray-500">
+                        {summary.itemCount} items • {summary.members.length}{" "}
+                        members
+                        {summary.isOwner && " • You are the owner"}
+                      </p>
                     </div>
-                  ))}
+                    {summary.isOwner && (
+                      <button
+                        onClick={() => setShowInviteForm(summary.realm.realmId)}
+                        className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 touch-manipulation flex-shrink-0"
+                      >
+                        Invite
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Members List */}
+                  <div className="space-y-2">
+                    {summary.members
+                      .filter((member) => member.name || member.email)
+                      .map((member, memberIndex) => (
+                        <div
+                          key={`${member.id || memberIndex}-${member.email || memberIndex}`}
+                          className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="font-medium text-gray-600">
+                                {member.name || "Unknown"}
+                              </span>
+                              {member.roles?.includes("owner") && (
+                                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+                                  Owner
+                                </span>
+                              )}
+                            </div>
+                            {member.email && (
+                              <div className="text-sm text-gray-600 truncate max-w-full">
+                                {member.email}
+                              </div>
+                            )}
+                          </div>
+                          {summary.isOwner &&
+                            !member.roles?.includes("owner") && (
+                              <button
+                                onClick={() =>
+                                  member.id && handleRemoveMember(member.id)
+                                }
+                                className="text-red-600 text-sm hover:text-red-800 ml-2 flex-shrink-0"
+                              >
+                                Remove
+                              </button>
+                            )}
+                        </div>
+                      ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}

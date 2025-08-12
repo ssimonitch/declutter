@@ -226,15 +226,33 @@ export default function ItemForm({
   const watchedOnlinePrice = watch("onlineAuctionPriceJPY");
   const watchedThriftPrice = watch("thriftShopPriceJPY");
 
-  // Debug logging for form validity
-  useEffect(() => {
-    console.log("Form validation state:", {
-      isValid,
-      errors,
-      hasItem: !!item,
-      itemId: item?.id,
-    });
-  }, [isValid, errors, item]);
+  // Helper function to update nested price objects
+  const updatePriceField = useCallback(
+    (
+      priceType: "onlineAuctionPriceJPY" | "thriftShopPriceJPY",
+      field: "low" | "high",
+      value: number,
+    ) => {
+      const currentPrice = watch(priceType) || {
+        low: 0,
+        high: 0,
+        confidence: 0.5,
+      };
+      setValue(
+        priceType,
+        {
+          ...currentPrice,
+          [field]: value,
+        },
+        {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        },
+      );
+    },
+    [setValue, watch],
+  );
 
   // Setup preview URL for photo
   useEffect(() => {
@@ -444,7 +462,7 @@ export default function ItemForm({
           <textarea
             {...register("description")}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900"
+            className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900 text-base touch-manipulation"
             placeholder="商品の詳細な説明を入力"
           />
           {errors.description && (
@@ -455,7 +473,7 @@ export default function ItemForm({
         </div>
 
         {/* Quantity and Category Row */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Quantity */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -474,7 +492,7 @@ export default function ItemForm({
                   onChange={(e) =>
                     field.onChange(parseInt(e.target.value) || 1)
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium"
+                  className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium text-base touch-manipulation"
                   placeholder="1"
                 />
               )}
@@ -497,7 +515,7 @@ export default function ItemForm({
               render={({ field }) => (
                 <select
                   {...field}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium"
+                  className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium text-base touch-manipulation"
                 >
                   <option value="">カテゴリーを選択</option>
                   {categoryOptions.map((category) => (
@@ -525,11 +543,11 @@ export default function ItemForm({
             name="condition"
             control={control}
             render={({ field }) => (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-3">
                 {conditionOptions.map((option) => (
                   <label
                     key={option.value}
-                    className={`relative flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${
+                    className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors min-h-[60px] ${
                       field.value === option.value
                         ? "border-blue-500 bg-blue-50"
                         : "border-gray-200 hover:border-gray-300"
@@ -603,56 +621,52 @@ export default function ItemForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             {/* Online Auction Pricing */}
             {(watchedOnlinePrice || watchedAction === "online") && (
               <div className="bg-white rounded-lg p-4 border border-green-300">
                 <h4 className="text-sm font-semibold text-green-800 mb-3 flex items-center">
                   💰 オンライン販売価格（メルカリ・ヤフオク等）
                 </h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">
                       最低価格
                     </label>
-                    <Controller
-                      name="onlineAuctionPriceJPY.low"
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="number"
-                          min="0"
-                          step="100"
-                          onChange={(e) =>
-                            field.onChange(parseInt(e.target.value) || 0)
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 font-medium text-sm"
-                          placeholder="0"
-                        />
-                      )}
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={watchedOnlinePrice?.low || 0}
+                      onChange={(e) =>
+                        updatePriceField(
+                          "onlineAuctionPriceJPY",
+                          "low",
+                          parseInt(e.target.value) || 0,
+                        )
+                      }
+                      className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 font-medium text-base touch-manipulation"
+                      placeholder="0"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">
                       最高価格
                     </label>
-                    <Controller
-                      name="onlineAuctionPriceJPY.high"
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="number"
-                          min="0"
-                          step="100"
-                          onChange={(e) =>
-                            field.onChange(parseInt(e.target.value) || 0)
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 font-medium text-sm"
-                          placeholder="0"
-                        />
-                      )}
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={watchedOnlinePrice?.high || 0}
+                      onChange={(e) =>
+                        updatePriceField(
+                          "onlineAuctionPriceJPY",
+                          "high",
+                          parseInt(e.target.value) || 0,
+                        )
+                      }
+                      className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 font-medium text-base touch-manipulation"
+                      placeholder="0"
                     />
                   </div>
                 </div>
@@ -699,49 +713,45 @@ export default function ItemForm({
                 <h4 className="text-sm font-semibold text-yellow-800 mb-3 flex items-center">
                   🏪 リサイクルショップ価格
                 </h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">
                       最低価格
                     </label>
-                    <Controller
-                      name="thriftShopPriceJPY.low"
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="number"
-                          min="0"
-                          step="100"
-                          onChange={(e) =>
-                            field.onChange(parseInt(e.target.value) || 0)
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-900 font-medium text-sm"
-                          placeholder="0"
-                        />
-                      )}
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={watchedThriftPrice?.low || 0}
+                      onChange={(e) =>
+                        updatePriceField(
+                          "thriftShopPriceJPY",
+                          "low",
+                          parseInt(e.target.value) || 0,
+                        )
+                      }
+                      className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-900 font-medium text-base touch-manipulation"
+                      placeholder="0"
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">
                       最高価格
                     </label>
-                    <Controller
-                      name="thriftShopPriceJPY.high"
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="number"
-                          min="0"
-                          step="100"
-                          onChange={(e) =>
-                            field.onChange(parseInt(e.target.value) || 0)
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-900 font-medium text-sm"
-                          placeholder="0"
-                        />
-                      )}
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={watchedThriftPrice?.high || 0}
+                      onChange={(e) =>
+                        updatePriceField(
+                          "thriftShopPriceJPY",
+                          "high",
+                          parseInt(e.target.value) || 0,
+                        )
+                      }
+                      className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-900 font-medium text-base touch-manipulation"
+                      placeholder="0"
                     />
                   </div>
                 </div>
@@ -793,11 +803,11 @@ export default function ItemForm({
             name="recommendedAction"
             control={control}
             render={({ field }) => (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 {actionOptions.map((option) => (
                   <label
                     key={option.value}
-                    className={`relative flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${
+                    className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors min-h-[60px] ${
                       field.value === option.value
                         ? `border-blue-500 ${option.color}`
                         : "border-gray-200 hover:border-gray-300"
@@ -881,7 +891,7 @@ export default function ItemForm({
               type="text"
               onChange={(e) => handleArrayInput("marketplaces", e.target.value)}
               defaultValue={item?.marketplaces?.join(", ") || ""}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-base touch-manipulation"
               placeholder="メルカリ, ヤフオク (カンマ区切り)"
             />
           </div>
@@ -899,7 +909,7 @@ export default function ItemForm({
                 handleArrayInput("searchQueries", e.target.value)
               }
               defaultValue={item?.searchQueries?.join(", ") || ""}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-base touch-manipulation"
               placeholder="検索で使えるキーワード (カンマ区切り)"
             />
           </div>
@@ -932,7 +942,7 @@ export default function ItemForm({
                           : null;
                         field.onChange(value);
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-gray-900 font-medium"
+                      className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-gray-900 font-medium text-base touch-manipulation"
                       placeholder="粗大ごみ処分費用（分からない場合は空欄）"
                     />
                   )}
@@ -960,7 +970,7 @@ export default function ItemForm({
           <textarea
             {...register("specialNotes")}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900"
+            className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900 text-base touch-manipulation"
             placeholder="注意事項や補足情報（例: 傷の場所、付属品の有無、特別な処分方法など）"
           />
           {errors.specialNotes && (
@@ -982,40 +992,18 @@ export default function ItemForm({
             type="text"
             onChange={(e) => handleArrayInput("keywords", e.target.value)}
             defaultValue={item?.keywords?.join(", ") || ""}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+            className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-base touch-manipulation"
             placeholder="内部検索用キーワード (カンマ区切り)"
           />
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
-          {/* Cancel Button */}
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting || isDeleting}
-            className="flex-1 sm:flex-none sm:order-1 px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            キャンセル
-          </button>
-
-          {/* Delete Button - Only show for existing items */}
-          {item && (
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              disabled={isSubmitting || isDeleting}
-              className="flex-1 sm:flex-none sm:order-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              削除
-            </button>
-          )}
-
-          {/* Save Button */}
+        <div className="flex flex-col gap-4 pt-6 border-t border-gray-200">
+          {/* Save Button - Make primary action most prominent */}
           <button
             type="submit"
             disabled={!isValid || isSubmitting || isDeleting}
-            className="flex-1 sm:order-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full px-6 py-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base font-medium min-h-[48px] touch-manipulation"
           >
             {isSubmitting ? (
               <div className="flex items-center justify-center">
@@ -1047,13 +1035,38 @@ export default function ItemForm({
               "保存"
             )}
           </button>
+
+          {/* Secondary actions */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Cancel Button */}
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isSubmitting || isDeleting}
+              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base min-h-[48px] touch-manipulation"
+            >
+              キャンセル
+            </button>
+
+            {/* Delete Button - Only show for existing items */}
+            {item && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={isSubmitting || isDeleting}
+                className="flex-1 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base min-h-[48px] touch-manipulation"
+              >
+                削除
+              </button>
+            )}
+          </div>
         </div>
       </form>
 
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 mx-4">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               削除の確認
             </h3>
@@ -1061,18 +1074,18 @@ export default function ItemForm({
               この商品「{item?.nameEnglishSpecific}
               」を削除しますか？この操作は取り消せません。
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={isDeleting}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors text-base min-h-[48px] touch-manipulation"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+                className="flex-1 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors text-base min-h-[48px] touch-manipulation"
               >
                 {isDeleting ? "削除中..." : "削除"}
               </button>
