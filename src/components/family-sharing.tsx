@@ -8,8 +8,6 @@ import {
   inviteMember,
   acceptInvitation,
   removeMember,
-  getCurrentRealmId,
-  setCurrentRealmId,
 } from "@/lib/db";
 import {
   RealmSummary,
@@ -17,6 +15,9 @@ import {
   CreateRealmRequest,
   InviteMemberRequest,
 } from "@/lib/types";
+import { useRealm } from "@/contexts/realm-context";
+import Modal from "@/components/ui/Modal";
+import Alert from "@/components/ui/Alert";
 
 interface FamilySharingProps {
   onRealmChange?: (realmId: string | null) => void;
@@ -27,13 +28,15 @@ export default function FamilySharing({
   onRealmChange,
   className,
 }: FamilySharingProps) {
+  const {
+    currentRealmId,
+    setCurrentRealmId,
+    isLoading: contextLoading,
+  } = useRealm();
   const [realms, setRealms] = useState<RealmSummary[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<
     DeclutterMember[]
   >([]);
-  const [currentRealmId, setCurrentRealmIdState] = useState<string | null>(
-    null,
-  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,9 +51,11 @@ export default function FamilySharing({
   const [inviteName, setInviteName] = useState("");
 
   useEffect(() => {
-    loadData();
-    setCurrentRealmIdState(getCurrentRealmId());
-  }, []);
+    // Only load data once the context is ready (not loading)
+    if (!contextLoading) {
+      loadData();
+    }
+  }, [contextLoading]);
 
   const loadData = async () => {
     try {
@@ -73,7 +78,6 @@ export default function FamilySharing({
 
   const handleRealmSwitch = (realmId: string | null) => {
     setCurrentRealmId(realmId);
-    setCurrentRealmIdState(realmId);
     onRealmChange?.(realmId);
   };
 
@@ -138,10 +142,10 @@ export default function FamilySharing({
     }
   };
 
-  if (loading) {
+  if (loading || contextLoading) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="text-center">Loading family sharing...</div>
+        <div className="text-center">ファミリー共有を読み込み中...</div>
       </div>
     );
   }
@@ -152,26 +156,28 @@ export default function FamilySharing({
     >
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-          Family Sharing
+          ファミリー共有
         </h2>
         <button
           onClick={() => setShowCreateForm(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 touch-manipulation"
         >
-          Create Family Group
+          家族グループ作成
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <div className="text-red-600 text-sm">{error}</div>
-        </div>
+        <Alert
+          variant="error"
+          description={error}
+          onClose={() => setError(null)}
+        />
       )}
 
       {/* Realm Selector */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Current View
+          現在の表示
         </label>
         <select
           value={currentRealmId || "private"}
@@ -182,7 +188,7 @@ export default function FamilySharing({
           }
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
-          <option value="private">My Private Items</option>
+          <option value="private">個人のアイテム</option>
           {realms.map((summary, index) => (
             <option
               key={`${summary.realm.realmId}-${index}`}
@@ -198,7 +204,7 @@ export default function FamilySharing({
       {pendingInvitations.length > 0 && (
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-3">
-            Pending Invitations
+            保留中の招待
           </h3>
           <div className="space-y-2">
             {pendingInvitations.map((invitation) => (
@@ -208,13 +214,13 @@ export default function FamilySharing({
               >
                 <div>
                   <div className="font-medium text-gray-900">
-                    Invitation to join a family group
+                    家族グループへの招待
                   </div>
                   <div className="text-sm text-gray-600">
-                    Invited{" "}
+                    招待日：
                     {invitation.invited
-                      ? invitation.invited.toLocaleDateString()
-                      : "recently"}
+                      ? invitation.invited.toLocaleDateString("ja-JP")
+                      : "最近"}
                   </div>
                 </div>
                 <button
@@ -223,7 +229,7 @@ export default function FamilySharing({
                   }
                   className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
                 >
-                  Accept
+                  承認
                 </button>
               </div>
             ))}
@@ -231,11 +237,11 @@ export default function FamilySharing({
         </div>
       )}
 
-      {/* Family Groups */}
-      {realms.length > 0 && (
+      {/* Current Realm Summary */}
+      {currentRealmId && (
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-3">
-            Family Groups
+            家族グループ
           </h3>
           <div className="space-y-4">
             {realms
@@ -261,9 +267,9 @@ export default function FamilySharing({
                         </p>
                       )}
                       <p className="text-sm text-gray-500">
-                        {summary.itemCount} items • {summary.members.length}{" "}
-                        members
-                        {summary.isOwner && " • You are the owner"}
+                        {summary.itemCount} 件のアイテム •{" "}
+                        {summary.members.length} 人のメンバー
+                        {summary.isOwner && " • あなたがオーナーです"}
                       </p>
                     </div>
                     {summary.isOwner && (
@@ -271,7 +277,7 @@ export default function FamilySharing({
                         onClick={() => setShowInviteForm(summary.realm.realmId)}
                         className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 touch-manipulation flex-shrink-0"
                       >
-                        Invite
+                        招待
                       </button>
                     )}
                   </div>
@@ -288,11 +294,11 @@ export default function FamilySharing({
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-1">
                               <span className="font-medium text-gray-600">
-                                {member.name || "Unknown"}
+                                {member.name || "不明"}
                               </span>
                               {member.roles?.includes("owner") && (
                                 <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
-                                  Owner
+                                  オーナー
                                 </span>
                               )}
                             </div>
@@ -310,7 +316,7 @@ export default function FamilySharing({
                                 }
                                 className="text-red-600 text-sm hover:text-red-800 ml-2 flex-shrink-0"
                               >
-                                Remove
+                                削除
                               </button>
                             )}
                         </div>
@@ -323,111 +329,107 @@ export default function FamilySharing({
       )}
 
       {/* Create Realm Form */}
-      {showCreateForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Create Family Group
-            </h3>
-            <form onSubmit={handleCreateRealm} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Group Name *
-                </label>
-                <input
-                  type="text"
-                  value={newRealmName}
-                  onChange={(e) => setNewRealmName(e.target.value)}
-                  placeholder="e.g., Tanaka Family"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  value={newRealmDescription}
-                  onChange={(e) => setNewRealmDescription(e.target.value)}
-                  placeholder="Family decluttering project"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
-                >
-                  Create
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateForm(false)}
-                  className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showCreateForm}
+        onClose={() => setShowCreateForm(false)}
+        title="家族グループ作成"
+        size="md"
+      >
+        <form onSubmit={handleCreateRealm} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              グループ名 *
+            </label>
+            <input
+              type="text"
+              value={newRealmName}
+              onChange={(e) => setNewRealmName(e.target.value)}
+              placeholder="例：田中家"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              required
+            />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              説明
+            </label>
+            <input
+              type="text"
+              value={newRealmDescription}
+              onChange={(e) => setNewRealmDescription(e.target.value)}
+              placeholder="家族の片付けプロジェクト"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
+            >
+              作成
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCreateForm(false)}
+              className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 touch-manipulation"
+            >
+              キャンセル
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Invite Member Form */}
-      {showInviteForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Invite Family Member
-            </h3>
-            <form onSubmit={handleInviteMember} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  value={inviteName}
-                  onChange={(e) => setInviteName(e.target.value)}
-                  placeholder="Sister Yuki"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="yuki@example.com"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  className="flex-1 bg-green-600 text-white py-2 rounded-md hover:bg-green-700"
-                >
-                  Send Invitation
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowInviteForm(null)}
-                  className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={!!showInviteForm}
+        onClose={() => setShowInviteForm(null)}
+        title="家族メンバーを招待"
+        size="md"
+      >
+        <form onSubmit={handleInviteMember} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              名前 *
+            </label>
+            <input
+              type="text"
+              value={inviteName}
+              onChange={(e) => setInviteName(e.target.value)}
+              placeholder="姉 由紀"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              required
+            />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              メールアドレス *
+            </label>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="yuki@example.com"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              required
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="flex-1 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 touch-manipulation"
+            >
+              招待を送信
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowInviteForm(null)}
+              className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 touch-manipulation"
+            >
+              キャンセル
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -5,13 +5,16 @@ import { useRouter } from "next/navigation";
 import DashboardSummary from "@/components/dashboard-summary";
 import ItemsTable from "@/components/items-table";
 import FamilySharing from "@/components/family-sharing";
+import Alert from "@/components/ui/Alert";
 import { listItems } from "@/lib/db";
 import { generateCSVContent, createCSVBlob, downloadCSV } from "@/utils/export";
+import { useCurrentRealmId } from "@/contexts/realm-context";
 import type { DeclutterItem } from "@/lib/types";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [refreshTrigger] = useState(0);
+  const currentRealmId = useCurrentRealmId();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -26,8 +29,8 @@ export default function DashboardPage() {
 
     setIsExporting(true);
     try {
-      // Fetch all items from database
-      const items = await listItems();
+      // Fetch all items from database for current realm
+      const items = await listItems(currentRealmId);
 
       if (items.length === 0) {
         setError("エクスポートする商品がありません");
@@ -40,8 +43,9 @@ export default function DashboardPage() {
       // Create blob with UTF-8 BOM for Excel compatibility
       const blob = createCSVBlob(csvContent);
 
-      // Download the CSV file
-      const filename = `declutter_items_${new Date().toISOString().split("T")[0]}.csv`;
+      // Generate filename with realm info
+      const realmSuffix = currentRealmId ? `_${currentRealmId}` : "_private";
+      const filename = `declutter_items${realmSuffix}_${new Date().toISOString().split("T")[0]}.csv`;
       downloadCSV(blob, filename);
     } catch (err) {
       console.error("Failed to export CSV:", err);
@@ -51,7 +55,7 @@ export default function DashboardPage() {
     } finally {
       setIsExporting(false);
     }
-  }, [isExporting]);
+  }, [currentRealmId, isExporting]);
 
   // Handle item row click - navigate to edit page
   const handleItemClick = useCallback(
@@ -157,46 +161,20 @@ export default function DashboardPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <svg
-                  className="h-5 w-5 text-red-400 mr-2"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span className="text-sm text-red-800">{error}</span>
-              </div>
-              <button
-                onClick={handleDismissError}
-                className="text-red-400 hover:text-red-600 ml-4"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
+          <div className="mb-6">
+            <Alert
+              variant="error"
+              description={error}
+              onClose={handleDismissError}
+            />
           </div>
         )}
 
         {/* Family Sharing */}
-        <FamilySharing className="mb-8" />
+        <FamilySharing
+          className="mb-8"
+          onRealmChange={() => setRefreshTrigger((v) => v + 1)}
+        />
 
         {/* Dashboard Summary */}
         <DashboardSummary

@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import ItemForm from "@/components/item-form";
+import Alert from "@/components/ui/Alert";
 import { getItem } from "@/lib/db";
+import { getTempCapture, deleteTempCapture } from "@/lib/temp-store";
 import type { DeclutterItem } from "@/lib/types";
 
 interface EditPageState {
@@ -11,7 +13,7 @@ interface EditPageState {
   loading: boolean;
   error: string | null;
   isNewItem: boolean;
-  tempStorageKey?: string;
+  tempId?: string;
 }
 
 export default function EditPage() {
@@ -28,21 +30,6 @@ export default function EditPage() {
     isNewItem: itemId === "new",
   });
 
-  // Helper function to convert base64 to blob
-  const base64ToBlob = (base64: string): Blob => {
-    const parts = base64.split(",");
-    const contentType = parts[0].match(/:(.*?);/)?.[1] || "image/jpeg";
-    const raw = window.atob(parts[1]);
-    const rawLength = raw.length;
-    const uInt8Array = new Uint8Array(rawLength);
-
-    for (let i = 0; i < rawLength; ++i) {
-      uInt8Array[i] = raw.charCodeAt(i);
-    }
-
-    return new Blob([uInt8Array], { type: contentType });
-  };
-
   // Load item data - use a flag to prevent double execution
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -54,30 +41,23 @@ export default function EditPage() {
 
       try {
         if (state.isNewItem && tempId) {
-          // Load from temporary session storage (new item from capture)
-          const storageKey = `declutter_temp_${tempId}`;
-
-          const tempDataStr = sessionStorage.getItem(storageKey);
-          if (!tempDataStr) {
+          // Load from temporary database (new item from capture)
+          const tempData = await getTempCapture(tempId);
+          if (!tempData) {
             throw new Error(
               "Temporary data not found. Please go back and capture the photo again.",
             );
           }
 
-          const tempData = JSON.parse(tempDataStr);
-
-          // Convert base64 back to blobs
-          const photo = base64ToBlob(tempData.photoData);
-          const thumbnail = base64ToBlob(tempData.thumbnailData);
-
           // Create a DeclutterItem with id="new" for new items
           // ItemForm will recognize this and call addItem instead of updateItem
           const newItem: DeclutterItem = {
             id: "new", // Special ID that ItemForm recognizes as create mode
+            realmId: tempData.realmId || undefined, // Preserve realm ID from capture
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            photo,
-            thumbnail,
+            photo: tempData.photo,
+            thumbnail: tempData.thumbnail,
             municipalityCode: tempData.municipalityCode,
 
             // Name fields from Gemini analysis
@@ -112,7 +92,7 @@ export default function EditPage() {
             actionRationale: tempData.analysisData?.actionRationale || "",
             marketplaces: tempData.analysisData?.marketplaces || [],
             searchQueries: tempData.analysisData?.searchQueries || [],
-            specialNotes: tempData.analysisData?.specialNotes,
+            specialNotes: tempData.analysisData?.specialNotes || null,
             keywords: tempData.analysisData?.keywords || [],
 
             // Disposal cost field
@@ -123,7 +103,7 @@ export default function EditPage() {
             ...prev,
             item: newItem,
             loading: false,
-            tempStorageKey: `declutter_temp_${tempId}`, // Store key for cleanup after save
+            tempId: tempId, // Store temp ID for cleanup after save
           }));
         } else if (!state.isNewItem) {
           // Load existing item from database
@@ -163,13 +143,18 @@ export default function EditPage() {
   }, [itemId, tempId, state.isNewItem, hasLoaded]);
 
   // Handle form save
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     // Clean up temporary storage after successful save
-    if (state.tempStorageKey) {
-      sessionStorage.removeItem(state.tempStorageKey);
+    if (state.tempId) {
+      try {
+        await deleteTempCapture(state.tempId);
+      } catch (error) {
+        console.warn("Failed to clean up temporary capture:", error);
+        // Don't throw - save was successful, cleanup failure is not critical
+      }
     }
     router.push("/dashboard");
-  }, [router, state.tempStorageKey]);
+  }, [router, state.tempId]);
 
   // Handle form cancel
   const handleCancel = useCallback(() => {
@@ -291,21 +276,12 @@ export default function EditPage() {
 
         {/* Error Alert (for form errors) */}
         {state.error && state.item && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <svg
-                className="h-5 w-5 text-red-400 mr-2"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span className="text-sm text-red-800">{state.error}</span>
-            </div>
+          <div className="mb-6">
+            <Alert
+              variant="error"
+              description={state.error}
+              onClose={() => setState((prev) => ({ ...prev, error: null }))}
+            />
           </div>
         )}
 

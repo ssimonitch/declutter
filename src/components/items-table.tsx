@@ -20,6 +20,8 @@ import {
   filterItemsByCategory,
 } from "@/lib/db";
 import { createBlobUrl, revokeBlobUrl } from "@/lib/image-utils";
+import { ACTION_CONFIG } from "@/lib/constants";
+import { useCurrentRealmId } from "@/contexts/realm-context";
 import type { DeclutterItem } from "@/lib/types";
 
 interface ItemsTableProps {
@@ -29,40 +31,6 @@ interface ItemsTableProps {
   refreshTrigger?: number; // Used to trigger data refresh
 }
 
-// Action display configuration
-const actionConfig = {
-  keep: {
-    label: "保管",
-    icon: "🏠",
-    color: "bg-blue-100 text-blue-800",
-    textColor: "text-blue-600",
-  },
-  online: {
-    label: "オンライン販売",
-    icon: "💰",
-    color: "bg-green-100 text-green-800",
-    textColor: "text-green-600",
-  },
-  thrift: {
-    label: "リサイクル",
-    icon: "🏪",
-    color: "bg-yellow-100 text-yellow-800",
-    textColor: "text-yellow-600",
-  },
-  donate: {
-    label: "寄付",
-    icon: "❤️",
-    color: "bg-purple-100 text-purple-800",
-    textColor: "text-purple-600",
-  },
-  trash: {
-    label: "廃棄",
-    icon: "🗑️",
-    color: "bg-red-100 text-red-800",
-    textColor: "text-red-600",
-  },
-} as const;
-
 const columnHelper = createColumnHelper<DeclutterItem>();
 
 export default function ItemsTable({
@@ -71,6 +39,7 @@ export default function ItemsTable({
   className = "",
   refreshTrigger = 0,
 }: ItemsTableProps) {
+  const currentRealmId = useCurrentRealmId();
   const [data, setData] = useState<DeclutterItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,13 +98,13 @@ export default function ItemsTable({
 
       // Apply filters in priority order
       if (debouncedGlobalFilter.trim()) {
-        items = await searchItems(debouncedGlobalFilter);
+        items = await searchItems(debouncedGlobalFilter, currentRealmId);
       } else if (actionFilter) {
-        items = await filterItemsByAction(actionFilter);
+        items = await filterItemsByAction(actionFilter, currentRealmId);
       } else if (categoryFilter) {
-        items = await filterItemsByCategory(categoryFilter);
+        items = await filterItemsByCategory(categoryFilter, currentRealmId);
       } else {
-        items = await listItems();
+        items = await listItems(currentRealmId);
       }
 
       // Clean up previous image URLs and create new ones
@@ -163,7 +132,7 @@ export default function ItemsTable({
     } finally {
       setLoading(false);
     }
-  }, [debouncedGlobalFilter, actionFilter, categoryFilter]);
+  }, [currentRealmId, debouncedGlobalFilter, actionFilter, categoryFilter]);
 
   // Load data
   useEffect(() => {
@@ -332,10 +301,10 @@ export default function ItemsTable({
         header: "アクション",
         cell: ({ getValue }) => {
           const action = getValue();
-          const config = actionConfig[action];
+          const config = ACTION_CONFIG[action];
           return (
             <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.lightColor} ${config.textColor}`}
             >
               <span className="mr-1">{config.icon}</span>
               {config.label}
@@ -411,15 +380,34 @@ export default function ItemsTable({
     onRowClick?.(row.original);
   };
 
+  const handleRowKeyDown = (
+    event: React.KeyboardEvent,
+    row: Row<DeclutterItem>,
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleRowClick(row);
+    }
+  };
+
   // Mobile card component
   const MobileCard = ({ item }: { item: DeclutterItem }) => {
     const imageUrl = imageUrls.get(item.id);
-    const config = actionConfig[item.recommendedAction];
+    const config = ACTION_CONFIG[item.recommendedAction];
 
     return (
       <div
-        className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+        role="button"
+        tabIndex={0}
+        className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
         onClick={() => onRowClick?.(item)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onRowClick?.(item);
+          }
+        }}
+        aria-label={`${item.nameEnglishSpecific || item.nameJapaneseSpecific || "商品"} の詳細を表示`}
       >
         <div className="flex space-x-4">
           {/* Thumbnail */}
@@ -529,7 +517,7 @@ export default function ItemsTable({
                 })()}
               </div>
               <span
-                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${config.color} ml-3 flex-shrink-0`}
+                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${config.lightColor} ${config.textColor} ml-3 flex-shrink-0`}
               >
                 <span className="mr-1">{config.icon}</span>
                 {config.label}
@@ -600,7 +588,7 @@ export default function ItemsTable({
               className="w-full px-3 py-3 border border-gray-300 rounded-md text-base text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
             >
               <option value="">すべて</option>
-              {Object.entries(actionConfig).map(([value, config]) => (
+              {Object.entries(ACTION_CONFIG).map(([value, config]) => (
                 <option key={value} value={value}>
                   {config.icon} {config.label}
                 </option>
@@ -691,25 +679,40 @@ export default function ItemsTable({
               <thead className="bg-gray-50">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={header.column.getToggleSortingHandler()}
-                        style={{ width: header.getSize() }}
-                      >
-                        <div className="flex items-center space-x-1">
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                          {{
-                            asc: <span className="text-blue-600">↑</span>,
-                            desc: <span className="text-blue-600">↓</span>,
-                          }[header.column.getIsSorted() as string] ?? null}
-                        </div>
-                      </th>
-                    ))}
+                    {headerGroup.headers.map((header) => {
+                      const sortDirection = header.column.getIsSorted();
+                      const canSort = header.column.getCanSort();
+
+                      return (
+                        <th
+                          key={header.id}
+                          scope="col"
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={header.column.getToggleSortingHandler()}
+                          style={{ width: header.getSize() }}
+                          aria-sort={
+                            canSort
+                              ? sortDirection === "asc"
+                                ? "ascending"
+                                : sortDirection === "desc"
+                                  ? "descending"
+                                  : "none"
+                              : undefined
+                          }
+                        >
+                          <div className="flex items-center space-x-1">
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                            {{
+                              asc: <span className="text-blue-600">↑</span>,
+                              desc: <span className="text-blue-600">↓</span>,
+                            }[header.column.getIsSorted() as string] ?? null}
+                          </div>
+                        </th>
+                      );
+                    })}
                   </tr>
                 ))}
               </thead>
@@ -717,8 +720,12 @@ export default function ItemsTable({
                 {table.getRowModel().rows.map((row) => (
                   <tr
                     key={row.id}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    role="button"
+                    tabIndex={0}
+                    className="hover:bg-gray-50 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
                     onClick={() => handleRowClick(row)}
+                    onKeyDown={(e) => handleRowKeyDown(e, row)}
+                    aria-label={`${row.original.nameEnglishSpecific || row.original.nameJapaneseSpecific || "商品"} の詳細を表示`}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <td

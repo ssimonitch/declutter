@@ -3,6 +3,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import PhotoCapture from "@/components/photo-capture";
+import Modal from "@/components/ui/Modal";
+import Alert from "@/components/ui/Alert";
+import { saveTempCapture } from "@/lib/temp-store";
+import { useCurrentRealmId } from "@/contexts/realm-context";
 import type { ImageQuality } from "@/lib/types";
 
 // 日本の主要自治体（処分情報付き）
@@ -22,10 +26,13 @@ interface CapturePageState {
   error: string | null;
   precisionMode: boolean;
   exaSearch: boolean;
+  capturedImageUrl: string | null;
 }
 
 export default function CapturePage() {
   const router = useRouter();
+  const currentRealmId = useCurrentRealmId();
+
   const [state, setState] = useState<CapturePageState>({
     selectedMunicipality: "",
     showMunicipalitySelector: false,
@@ -33,6 +40,7 @@ export default function CapturePage() {
     error: null,
     precisionMode: false,
     exaSearch: false,
+    capturedImageUrl: null,
   });
 
   // Load saved municipality from localStorage
@@ -66,7 +74,13 @@ export default function CapturePage() {
   // Handle photo capture and analysis
   const handlePhotoCapture = useCallback(
     async (photo: Blob, thumbnail: Blob, quality: ImageQuality) => {
-      setState((prev) => ({ ...prev, isAnalyzing: true, error: null }));
+      const imageUrl = URL.createObjectURL(photo);
+      setState((prev) => ({
+        ...prev,
+        isAnalyzing: true,
+        error: null,
+        capturedImageUrl: imageUrl,
+      }));
 
       try {
         // Prepare form data for API - matching expected field names
@@ -95,31 +109,17 @@ export default function CapturePage() {
         // Exa search status available but not logged in production
         // Status: result.exaSearchStatus, Results: result.exaResultCount
 
-        // Store photo and thumbnail for the edit page
-        const tempPhotoData = {
-          photo: photo,
-          thumbnail: thumbnail,
-          quality: quality,
+        // Store capture data in temporary database
+        const tempId = await saveTempCapture({
+          photo,
+          thumbnail,
+          quality,
           analysisData: result.data,
           municipalityCode: state.selectedMunicipality,
-        };
+          realmId: currentRealmId,
+        });
 
-        // Store in sessionStorage to pass to edit page
-        // We'll create a temporary ID for navigation
-        const tempId = `${Date.now()}`;
-        const storageKey = `declutter_temp_${tempId}`;
-
-        sessionStorage.setItem(
-          storageKey,
-          JSON.stringify({
-            ...tempPhotoData,
-            // Convert blobs to base64 for storage
-            photoData: await blobToBase64(photo),
-            thumbnailData: await blobToBase64(thumbnail),
-          }),
-        );
-
-        // Navigate to edit page
+        // Navigate to edit page with temp ID
         router.push(`/edit/new?temp=${tempId}`);
       } catch (error) {
         console.error("Failed to analyze photo:", error);
@@ -129,12 +129,22 @@ export default function CapturePage() {
             error instanceof Error
               ? error.message
               : "写真の分析に失敗しました。もう一度お試しください。",
+          isAnalyzing: false,
         }));
       } finally {
-        setState((prev) => ({ ...prev, isAnalyzing: false }));
+        // Clean up the image URL when done
+        if (imageUrl) {
+          URL.revokeObjectURL(imageUrl);
+        }
       }
     },
-    [state.selectedMunicipality, state.precisionMode, state.exaSearch, router],
+    [
+      state.selectedMunicipality,
+      state.precisionMode,
+      state.exaSearch,
+      router,
+      currentRealmId,
+    ],
   );
 
   // Handle error from PhotoCapture component
@@ -144,18 +154,18 @@ export default function CapturePage() {
 
   // Handle error dismissal
   const handleDismissError = useCallback(() => {
-    setState((prev) => ({ ...prev, error: null }));
-  }, []);
-
-  // Helper function to convert blob to base64
-  const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
+    setState((prev) => {
+      // Clean up captured image URL when dismissing error
+      if (prev.capturedImageUrl) {
+        URL.revokeObjectURL(prev.capturedImageUrl);
+      }
+      return {
+        ...prev,
+        error: null,
+        capturedImageUrl: null,
+      };
     });
-  };
+  }, []);
 
   const selectedMunicipalityInfo = MUNICIPALITIES.find(
     (m) => m.code === state.selectedMunicipality,
@@ -176,41 +186,12 @@ export default function CapturePage() {
 
         {/* Error Alert */}
         {state.error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <svg
-                  className="h-5 w-5 text-red-400 mr-2"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span className="text-sm text-red-800">{state.error}</span>
-              </div>
-              <button
-                onClick={handleDismissError}
-                className="text-red-400 hover:text-red-600 ml-4"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
+          <div className="mb-6">
+            <Alert
+              variant="error"
+              description={state.error}
+              onClose={handleDismissError}
+            />
           </div>
         )}
 
@@ -260,45 +241,46 @@ export default function CapturePage() {
         )}
 
         {/* Municipality Selector Modal */}
-        {state.showMunicipalitySelector && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">
-                  お住まいの地域を選択
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  処分費用の算出に必要です。後で変更可能です。
-                </p>
-              </div>
-              <div className="max-h-96 overflow-y-auto">
-                <div className="p-4 space-y-2">
-                  {MUNICIPALITIES.map((municipality) => (
-                    <button
-                      key={municipality.code}
-                      onClick={() =>
-                        handleMunicipalitySelect(municipality.code)
-                      }
-                      className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-colors"
-                    >
-                      <div className="font-medium text-gray-900">
-                        {municipality.fullName || municipality.name}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        自治体コード: {municipality.code}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="p-4 border-t border-gray-200 bg-gray-50">
-                <p className="text-xs text-gray-500">
-                  お住まいの地域が見つからない場合は、最寄りの大きな都市を選択してください。
-                </p>
+        <Modal
+          isOpen={state.showMunicipalitySelector}
+          onClose={() =>
+            setState((prev) => ({ ...prev, showMunicipalitySelector: false }))
+          }
+          title="お住まいの地域を選択"
+          size="md"
+          preventCloseOnBackdrop={true}
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              処分費用の算出に必要です。後で変更可能です。
+            </p>
+
+            <div className="max-h-96 overflow-y-auto">
+              <div className="space-y-2">
+                {MUNICIPALITIES.map((municipality) => (
+                  <button
+                    key={municipality.code}
+                    onClick={() => handleMunicipalitySelect(municipality.code)}
+                    className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
+                  >
+                    <div className="font-medium text-gray-900">
+                      {municipality.fullName || municipality.name}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      自治体コード: {municipality.code}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
+
+            <div className="p-4 border-t border-gray-200 bg-gray-50 -m-6 mt-4">
+              <p className="text-xs text-gray-500">
+                お住まいの地域が見つからない場合は、最寄りの大きな都市を選択してください。
+              </p>
+            </div>
           </div>
-        )}
+        </Modal>
 
         {/* Analysis Settings */}
         {!state.showMunicipalitySelector && (
@@ -386,46 +368,60 @@ export default function CapturePage() {
         {/* Photo Capture */}
         {!state.showMunicipalitySelector && (
           <div className="bg-white rounded-lg shadow p-6">
-            <PhotoCapture
-              onPhotoCapture={handlePhotoCapture}
-              onError={handleError}
-              disabled={state.isAnalyzing}
-              className=""
-            />
+            {!state.isAnalyzing && (
+              <PhotoCapture
+                onPhotoCapture={handlePhotoCapture}
+                onError={handleError}
+                disabled={state.isAnalyzing}
+                className=""
+              />
+            )}
 
-            {/* Analysis Loading State */}
-            {state.isAnalyzing && (
-              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  <div>
-                    <p className="text-sm font-medium text-blue-900">
-                      AI分析中...
-                    </p>
-                    <p className="text-xs text-blue-700">
-                      {state.exaSearch
-                        ? "最新の市場データを検索して商品情報を分析しています"
-                        : "商品情報を自動で認識しています"}
-                    </p>
+            {/* Captured Image During Analysis */}
+            {state.isAnalyzing && state.capturedImageUrl && (
+              <div className="relative">
+                <div className="aspect-[4/3] w-full rounded-lg overflow-hidden bg-gray-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={state.capturedImageUrl}
+                    alt="分析中の写真"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                    <div className="bg-white rounded-lg p-4 max-w-sm mx-4">
+                      <div className="flex items-center">
+                        <svg
+                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            AI分析中...
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {state.exaSearch
+                              ? "最新の市場データを検索中"
+                              : "商品情報を認識中"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

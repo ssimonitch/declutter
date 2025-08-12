@@ -9,8 +9,9 @@ import {
 import type { DeclutterItem } from "./types";
 import { searchJapaneseMarket, searchDisposalInfo, getExaClient } from "./exa";
 
-// Model configuration - ONLY use 2.5 family models
+// Model configuration - Using latest stable models
 // see: https://ai.google.dev/gemini-api/docs/models
+// Primary models (2.5 family)
 const DEFAULT_MODEL = "gemini-2.5-flash";
 const PRECISION_MODEL = "gemini-2.5-pro";
 
@@ -471,9 +472,20 @@ class GeminiClient {
       }
 
       const response = result.response;
-      const text = response.text();
+      let text: string;
+
+      try {
+        text = response.text();
+      } catch (error) {
+        console.error("Failed to get text from Gemini response:", error);
+        console.error("Response object:", response);
+        throw new Error(
+          `Failed to parse Gemini response: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+      }
 
       if (!text) {
+        console.error("Empty text from Gemini, response object:", response);
         throw new Error("Empty response from Gemini API");
       }
 

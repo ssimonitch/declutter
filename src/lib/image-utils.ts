@@ -239,31 +239,8 @@ export async function getImageDimensions(
   });
 }
 
-/**
- * Converts blob to base64 string for API transmission
- *
- * @param blob - Blob to convert
- * @returns Promise<string> - Base64 encoded string
- */
-export async function convertBlobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-      } else {
-        reject(new Error("Failed to convert blob to base64"));
-      }
-    };
-
-    reader.onerror = () => {
-      reject(new Error("FileReader error during base64 conversion"));
-    };
-
-    reader.readAsDataURL(blob);
-  });
-}
+// Re-export blob conversion utilities from centralized location
+export { blobToBase64 as convertBlobToBase64 } from "@/utils/blob-utils";
 
 /**
  * Formats file size in bytes to human-readable string

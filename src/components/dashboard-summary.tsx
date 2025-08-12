@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { calculateDashboardSummary } from "@/lib/db";
+import { ACTION_CONFIG } from "@/lib/constants";
+import { useCurrentRealmId } from "@/contexts/realm-context";
+import { Button, Spinner } from "@/components/ui";
 import type { DashboardSummary } from "@/lib/types";
 
 interface DashboardSummaryProps {
@@ -10,62 +13,19 @@ interface DashboardSummaryProps {
   className?: string;
 }
 
-// Action configuration for consistent styling
-const actionConfig = {
-  keep: {
-    label: "保管",
-    icon: "🏠",
-    color: "bg-blue-500",
-    lightColor: "bg-blue-100",
-    textColor: "text-blue-800",
-    description: "手元に残す品物",
-  },
-  online: {
-    label: "オンライン販売",
-    icon: "💰",
-    color: "bg-green-500",
-    lightColor: "bg-green-100",
-    textColor: "text-green-800",
-    description: "メルカリ・ヤフオク等で販売",
-  },
-  thrift: {
-    label: "リサイクルショップ",
-    icon: "🏪",
-    color: "bg-yellow-500",
-    lightColor: "bg-yellow-100",
-    textColor: "text-yellow-800",
-    description: "実店舗で販売",
-  },
-  donate: {
-    label: "寄付",
-    icon: "❤️",
-    color: "bg-purple-500",
-    lightColor: "bg-purple-100",
-    textColor: "text-purple-800",
-    description: "NPO・福祉施設等に寄付",
-  },
-  trash: {
-    label: "廃棄",
-    icon: "🗑️",
-    color: "bg-red-500",
-    lightColor: "bg-red-100",
-    textColor: "text-red-800",
-    description: "ゴミとして処分",
-  },
-} as const;
-
 export default function DashboardSummary({
   refreshTrigger = 0,
   onError,
   className = "",
 }: DashboardSummaryProps) {
+  const currentRealmId = useCurrentRealmId();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadSummary = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await calculateDashboardSummary();
+      const data = await calculateDashboardSummary(currentRealmId);
       setSummary(data);
     } catch (error) {
       console.error("Failed to load dashboard summary:", error);
@@ -77,7 +37,7 @@ export default function DashboardSummary({
     } finally {
       setLoading(false);
     }
-  }, [onError]);
+  }, [currentRealmId, onError]);
 
   // Load summary data
   useEffect(() => {
@@ -110,18 +70,10 @@ export default function DashboardSummary({
   if (loading) {
     return (
       <div className={`space-y-6 ${className}`}>
-        <div className="animate-pulse">
-          {/* Stats Grid Skeleton */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-gray-200 h-24 rounded-lg"></div>
-            ))}
-          </div>
-
-          {/* Summary Cards Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-gray-200 h-64 rounded-lg"></div>
-            <div className="bg-gray-200 h-64 rounded-lg"></div>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Spinner size="lg" className="mx-auto mb-4" />
+            <p className="text-gray-500">ダッシュボードを読み込み中...</p>
           </div>
         </div>
       </div>
@@ -134,12 +86,9 @@ export default function DashboardSummary({
         <div className="text-gray-500 mb-4">
           ダッシュボードデータを読み込めませんでした
         </div>
-        <button
-          onClick={loadSummary}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-        >
+        <Button variant="primary" onClick={loadSummary}>
           再読み込み
-        </button>
+        </Button>
       </div>
     );
   }
@@ -190,7 +139,8 @@ export default function DashboardSummary({
           </h3>
           <div className="space-y-4">
             {Object.entries(summary.itemsByAction).map(([action, count]) => {
-              const config = actionConfig[action as keyof typeof actionConfig];
+              const config =
+                ACTION_CONFIG[action as keyof typeof ACTION_CONFIG];
               const percentage =
                 summary.totalItems > 0 ? (count / summary.totalItems) * 100 : 0;
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { initializeDatabase } from "@/lib/db";
+import { initializeTempStorage } from "@/lib/temp-store";
 
 export default function DatabaseInitializer({
   children,
@@ -12,13 +13,14 @@ export default function DatabaseInitializer({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    initializeDatabase()
+    // Initialize both main database and temporary storage
+    Promise.all([initializeDatabase(), initializeTempStorage()])
       .then(() => {
         setIsReady(true);
       })
       .catch((err) => {
-        console.error("Failed to initialize database:", err);
-        setError(err.message || "Failed to initialize database");
+        console.error("Failed to initialize databases:", err);
+        setError(err.message || "Failed to initialize databases");
         // Still mark as ready to allow the app to render
         setIsReady(true);
       });

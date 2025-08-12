@@ -149,3 +149,5 @@ Before committing changes:
 - Use blob URLs carefully (revoke when done)
 - Monitor storage quota to prevent data loss
 - Always keep scope as minimal as possible. This is a personal project MVP so security, performance, and testing are not high priority right now.
+
+- Always reference documentation in @docs/00_app_spec.md when starting a new session to understand the app scope. Reference other docs in the @docs/ directory as needed.
