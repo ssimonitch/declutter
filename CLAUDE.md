@@ -90,9 +90,9 @@ The app is specifically tailored for the Japanese second-hand market:
 ## Gemini API Integration
 
 - **Models** (2.0 family only - NEVER use older versions):
-  - Standard: `gemini-2.0-flash-exp` - Fast, efficient analysis
-  - Precision: `gemini-2.0-flash-thinking-exp-1219` - Advanced reasoning for complex items
-- **Web Grounding**: Supported on all 2.0 models for real-time market data
+  - Standard: `gemini-2.5-flash` - Fast, efficient analysis
+  - Precision: `gemini-2.5-pro` - Advanced reasoning for complex items
+- **Web Grounding**: Supported on all 2.5 models for real-time market data
 - **Structured Output**: Uses schema validation for consistent responses
 - **System Prompt**: Japanese-context aware with marketplace expertise
 - **Cost**: ~$0.001-0.003 per item analysis (very cost-effective)

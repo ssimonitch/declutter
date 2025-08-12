@@ -1,6 +1,5 @@
 // Gemini API client configuration for Declutter App MVP
 // Handles AI-powered image analysis with Japanese market context
-// IMPORTANT: Only use Gemini 2.0 family models or newer - NEVER downgrade to older versions
 
 import {
   GoogleGenerativeAI,
@@ -10,7 +9,7 @@ import {
 import type { DeclutterItem } from "./types";
 import { searchJapaneseMarket, searchDisposalInfo, getExaClient } from "./exa";
 
-// Model configuration - ONLY use 2.0 family models, 2.5 preferred
+// Model configuration - ONLY use 2.5 family models
 // see: https://ai.google.dev/gemini-api/docs/models
 const DEFAULT_MODEL = "gemini-2.5-flash";
 const PRECISION_MODEL = "gemini-2.5-pro";
@@ -314,8 +313,6 @@ class GeminiClient {
     options: AnalysisOptions = {},
   ): Promise<EnhancedAnalysisResult> {
     try {
-      // Select model based on features needed
-      // Both standard and precision models support web grounding in 2.0 family
       const modelName = options.precisionMode
         ? PRECISION_MODEL
         : this.config.model;
