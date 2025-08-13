@@ -11,6 +11,13 @@ interface ModalProps {
   preventCloseOnBackdrop?: boolean;
 }
 
+const sizeClasses = {
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
+  xl: "max-w-xl",
+};
+
 const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
@@ -23,12 +30,9 @@ const Modal: React.FC<ModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  const sizeClasses = {
-    sm: "max-w-sm",
-    md: "max-w-md",
-    lg: "max-w-lg",
-    xl: "max-w-xl",
-  };
+  // Store onClose in a ref to avoid effect re-runs when it changes
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Focus management and escape key handling
   useEffect(() => {
@@ -45,7 +49,7 @@ const Modal: React.FC<ModalProps> = ({
       // Handle escape key
       const handleEscape = (event: KeyboardEvent) => {
         if (event.key === "Escape") {
-          onClose();
+          onCloseRef.current();
         }
       };
 
@@ -61,7 +65,7 @@ const Modal: React.FC<ModalProps> = ({
         }
       };
     }
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   // Focus trap implementation
   const handleKeyDown = (event: React.KeyboardEvent) => {
