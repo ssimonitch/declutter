@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useObservable } from "dexie-react-hooks";
+import type { Invite } from "dexie-cloud-addon";
 import {
   getUserRealms,
-  getPendingInvitations,
   createRealm,
   inviteMember,
-  acceptInvitation,
   removeMember,
+  getDb,
 } from "@/lib/db";
 import {
   RealmSummary,
-  SuzuMemoMember,
   CreateRealmRequest,
   InviteMemberRequest,
 } from "@/lib/types";
@@ -34,9 +34,11 @@ export default function FamilySharing({
     isLoading: contextLoading,
   } = useRealm();
   const [realms, setRealms] = useState<RealmSummary[]>([]);
-  const [pendingInvitations, setPendingInvitations] = useState<
-    SuzuMemoMember[]
-  >([]);
+
+  // Use Dexie Cloud's built-in invites observable
+  const db = useMemo(() => getDb(), []);
+  const cloudInvites = useObservable(db.cloud?.invites);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,15 +59,18 @@ export default function FamilySharing({
     }
   }, [contextLoading]);
 
+  // Reload data when realm changes to ensure items are fresh
+  useEffect(() => {
+    if (!contextLoading && currentRealmId !== undefined) {
+      loadData();
+    }
+  }, [currentRealmId, contextLoading]);
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const [userRealms, invitations] = await Promise.all([
-        getUserRealms(),
-        getPendingInvitations(),
-      ]);
+      const userRealms = await getUserRealms();
       setRealms(userRealms);
-      setPendingInvitations(invitations);
       setError(null);
     } catch (err) {
       setError(
@@ -122,13 +127,25 @@ export default function FamilySharing({
     }
   };
 
-  const handleAcceptInvitation = async (memberId: string) => {
+  const handleAcceptInvitation = async (invite: Invite) => {
     try {
-      await acceptInvitation(memberId);
+      // Use Dexie Cloud's built-in accept method
+      await invite.accept();
       await loadData();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to accept invitation",
+      );
+    }
+  };
+
+  const handleRejectInvitation = async (invite: Invite) => {
+    try {
+      // Use Dexie Cloud's built-in reject method
+      await invite.reject();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to reject invitation",
       );
     }
   };
@@ -201,36 +218,39 @@ export default function FamilySharing({
       </div>
 
       {/* Pending Invitations */}
-      {pendingInvitations.length > 0 && (
+      {cloudInvites && cloudInvites.length > 0 && (
         <div>
           <h3 className="text-lg font-medium text-suzu-neutral-900 mb-3">
             保留中の招待
           </h3>
           <div className="space-y-2">
-            {pendingInvitations.map((invitation) => (
+            {cloudInvites.map((invite) => (
               <div
-                key={invitation.id}
+                key={invite.id}
                 className="flex items-center justify-between p-3 bg-suzu-primary-50 border border-suzu-primary-200 rounded-md"
               >
                 <div>
                   <div className="font-medium text-suzu-neutral-900">
-                    家族グループへの招待
+                    {invite.realm?.name || "家族グループ"}への招待
                   </div>
                   <div className="text-sm text-suzu-neutral-700">
-                    招待日：
-                    {invitation.invited
-                      ? invitation.invited.toLocaleDateString("ja-JP")
-                      : "最近"}
+                    役割: {invite.roles?.join(", ") || "メンバー"}
                   </div>
                 </div>
-                <button
-                  onClick={() =>
-                    invitation.id && handleAcceptInvitation(invitation.id)
-                  }
-                  className="bg-suzu-primary-500 text-white px-3 py-1 rounded text-sm hover:bg-suzu-primary-600"
-                >
-                  承認
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleAcceptInvitation(invite)}
+                    className="bg-suzu-primary-500 text-white px-3 py-1 rounded text-sm hover:bg-suzu-primary-600"
+                  >
+                    承認
+                  </button>
+                  <button
+                    onClick={() => handleRejectInvitation(invite)}
+                    className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600"
+                  >
+                    拒否
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -139,6 +139,7 @@ export default function ItemsTable({
     loadData();
   }, [
     refreshTrigger,
+    currentRealmId, // Also trigger reload when realm changes
     debouncedGlobalFilter,
     actionFilter,
     categoryFilter,

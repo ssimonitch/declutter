@@ -65,12 +65,16 @@ export const useItemForm = ({
         let itemId: string;
 
         if (item && item.id !== "new") {
-          // Update existing item
-          await updateItem(item.id, formDataToItem(finalData));
+          // Update existing item - preserve realmId
+          const updateData = formDataToItem(finalData, item.realmId);
+          await updateItem(item.id, updateData);
           itemId = item.id;
         } else {
           // Create new item
-          itemId = await addItem(formDataToItem(finalData), currentRealmId);
+          itemId = await addItem(
+            formDataToItem(finalData, currentRealmId),
+            currentRealmId,
+          );
         }
 
         onSuccess(itemId);

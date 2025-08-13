@@ -42,7 +42,7 @@ export default function DashboardSummary({
   // Load summary data
   useEffect(() => {
     loadSummary();
-  }, [refreshTrigger, loadSummary]);
+  }, [refreshTrigger, currentRealmId, loadSummary]);
 
   // Calculate category chart data
   const categoryChartData = useMemo(() => {

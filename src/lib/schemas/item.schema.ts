@@ -154,9 +154,12 @@ export const itemToFormData = (item: SuzuMemoItem): ItemFormData => ({
 // Transform form data to SuzuMemoItem for saving (without id/timestamps)
 export const formDataToItem = (
   data: ItemFormInput,
+  realmId?: string | null,
 ): Omit<SuzuMemoItem, "id" | "createdAt" | "updatedAt"> => ({
   ...data,
   quantity: data.quantity || 1,
+  // Include realmId if provided
+  realmId: realmId || undefined,
   // Ensure required Blob fields
   photo: data.photo!,
   thumbnail: data.thumbnail!,
