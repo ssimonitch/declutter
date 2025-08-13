@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import ItemForm from "@/components/item-form";
+import ItemForm from "./_components/ItemForm";
 import Alert from "@/components/ui/Alert";
 import { getItem } from "@/lib/db";
 import { getTempCapture, deleteTempCapture } from "@/lib/temp-store";

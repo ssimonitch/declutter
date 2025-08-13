@@ -20,7 +20,7 @@ import {
   TrashFields,
   NotesKeywordsSection,
   FormActions,
-} from "@/components/item-form/index";
+} from "@/components/form";
 
 // Zod schema for form validation
 const itemFormSchema = z.object({

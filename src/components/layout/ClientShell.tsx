@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import DatabaseInitializer from "@/components/database-initializer";
+import DatabaseInitializer from "@/components/layout/DatabaseInitializer";
 import { RealmProvider } from "@/contexts/realm-context";
 
 // Navigation items

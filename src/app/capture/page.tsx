@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import PhotoCapture from "@/components/photo-capture";
+import PhotoCapture from "@/app/capture/_components/PhotoCapture";
 import Modal from "@/components/ui/Modal";
 import Alert from "@/components/ui/Alert";
 import { saveTempCapture } from "@/lib/temp-store";

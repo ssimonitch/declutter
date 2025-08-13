@@ -13,7 +13,7 @@ import {
 } from "@/lib/image-utils";
 import type { ImageQuality } from "@/lib/types";
 import { Button, Alert, Spinner } from "@/components/ui";
-import CameraStream from "./camera-stream";
+import CameraStream from "./CameraStream";
 
 interface PhotoCaptureProps {
   onPhotoCapture: (

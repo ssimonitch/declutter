@@ -2,9 +2,9 @@
 
 import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import DashboardSummary from "@/components/dashboard-summary";
-import ItemsTable from "@/components/items-table";
-import FamilySharing from "@/components/family-sharing";
+import DashboardSummary from "@/app/dashboard/_components/DashboardSummary";
+import ItemsTable from "@/app/dashboard/_components/ItemsTable";
+import FamilySharing from "@/app/dashboard/_components/FamilySharing";
 import Alert from "@/components/ui/Alert";
 import { listItems } from "@/lib/db";
 import { generateCSVContent, createCSVBlob, downloadCSV } from "@/utils/export";
