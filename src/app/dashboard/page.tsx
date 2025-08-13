@@ -9,7 +9,7 @@ import Alert from "@/components/ui/Alert";
 import { listItems } from "@/lib/db";
 import { generateCSVContent, createCSVBlob, downloadCSV } from "@/utils/export";
 import { useCurrentRealmId } from "@/contexts/realm-context";
-import type { DeclutterItem } from "@/lib/types";
+import type { SuzuMemoItem } from "@/lib/types";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -45,7 +45,7 @@ export default function DashboardPage() {
 
       // Generate filename with realm info
       const realmSuffix = currentRealmId ? `_${currentRealmId}` : "_private";
-      const filename = `declutter_items${realmSuffix}_${new Date().toISOString().split("T")[0]}.csv`;
+      const filename = `suzumemo_items${realmSuffix}_${new Date().toISOString().split("T")[0]}.csv`;
       downloadCSV(blob, filename);
     } catch (err) {
       console.error("Failed to export CSV:", err);
@@ -59,7 +59,7 @@ export default function DashboardPage() {
 
   // Handle item row click - navigate to edit page
   const handleItemClick = useCallback(
-    (item: DeclutterItem) => {
+    (item: SuzuMemoItem) => {
       router.push(`/edit/${item.id}`);
     },
     [router],
@@ -71,16 +71,16 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-suzu-cream">
       <div className="w-full max-w-none lg:max-w-7xl lg:mx-auto px-4 py-4 sm:px-6 sm:py-6">
         {/* Header */}
         <div className="mb-6">
-          <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
+          <div className="bg-white rounded-lg p-4 sm:p-6 border border-suzu-brown-200">
             <div className="mb-4">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl sm:text-3xl font-bold text-suzu-brown-700 mb-2">
                 ダッシュボード
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-suzu-brown-600">
                 登録した商品の概要と詳細を確認できます
               </p>
             </div>
@@ -89,7 +89,7 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => router.push("/capture")}
-                className="inline-flex items-center justify-center px-6 py-4 bg-blue-600 text-white text-base font-medium rounded-lg hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors min-h-[52px] touch-manipulation"
+                className="inline-flex items-center justify-center px-6 py-4 bg-suzu-primary-500 text-white text-base font-medium rounded-lg hover:bg-suzu-primary-600 active:bg-suzu-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-suzu-primary-500 transition-colors min-h-[52px] touch-manipulation"
               >
                 <svg
                   className="mr-2 h-5 w-5"
@@ -110,7 +110,7 @@ export default function DashboardPage() {
               <button
                 onClick={handleExportCSV}
                 disabled={isExporting}
-                className="inline-flex items-center justify-center px-6 py-4 border border-gray-300 rounded-lg text-base font-medium text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[52px] touch-manipulation"
+                className="inline-flex items-center justify-center px-6 py-4 border border-suzu-brown-300 rounded-lg text-base font-medium text-suzu-neutral-800 bg-white hover:bg-suzu-cream active:bg-suzu-primary-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[52px] touch-manipulation"
               >
                 {isExporting ? (
                   <>
@@ -185,9 +185,11 @@ export default function DashboardPage() {
 
         {/* Items Table */}
         <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">登録商品一覧</h2>
-            <p className="text-sm text-gray-600 mt-1">
+          <div className="px-6 py-4 border-b border-suzu-brown-200">
+            <h2 className="text-lg font-medium text-suzu-neutral-900">
+              登録商品一覧
+            </h2>
+            <p className="text-sm text-suzu-neutral-700 mt-1">
               商品をクリックして詳細を編集できます
             </p>
           </div>

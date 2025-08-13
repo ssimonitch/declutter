@@ -1,4 +1,4 @@
-// Gemini API client configuration for Declutter App MVP
+// Gemini API client configuration for SuzuMemo App
 // Handles AI-powered image analysis with Japanese market context
 
 import {
@@ -6,9 +6,18 @@ import {
   ObjectSchema,
   SchemaType,
 } from "@google/generative-ai";
-import type { DeclutterItem } from "./types";
+import type { SuzuMemoItem } from "./types";
 import { searchJapaneseMarket, searchDisposalInfo, getExaClient } from "./exa";
 import { logger, geminiLogger } from "./logger";
+import { executeWithExponentialBackoff } from "./retry";
+import {
+  AIServiceError,
+  RateLimitError,
+  NetworkError,
+  ConfigurationError,
+  ParseError,
+  AnalysisError,
+} from "./errors";
 
 // Model configuration - Using latest stable models
 // see: https://ai.google.dev/gemini-api/docs/models
@@ -284,7 +293,7 @@ export type EnhancedAnalysisResult = AnalysisResult & {
 
 // Analysis result type
 type AnalysisResult = Omit<
-  DeclutterItem,
+  SuzuMemoItem,
   "id" | "createdAt" | "updatedAt" | "photo" | "thumbnail"
 >;
 
@@ -420,57 +429,34 @@ class GeminiClient {
         },
       };
 
-      // Generate content with structured output
-      const generateOnce = async () => {
-        const prompt =
-          "画像を分析して、指定されたJSON形式で商品情報を返してください。";
+      // Generate content with structured output and real retry helper
+      const result = await executeWithExponentialBackoff(
+        () => {
+          const prompt =
+            "画像を分析して、指定されたJSON形式で商品情報を返してください。";
 
-        return model.generateContent({
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  text: prompt,
-                },
-                imagePart,
-              ],
-            },
-          ],
-        });
-      };
-
-      const maxAttempts = 3;
-      let attempt = 0;
-      let lastError: unknown = null;
-      let result: Awaited<ReturnType<typeof generateOnce>> | null = null;
-      while (attempt < maxAttempts) {
-        try {
-          result = await generateOnce();
-          break;
-        } catch (err) {
-          lastError = err;
-          const message = err instanceof Error ? err.message.toLowerCase() : "";
-          // Retry on transient/rate/timeout conditions
-          const shouldRetry =
-            message.includes("quota") ||
-            message.includes("rate") ||
-            message.includes("timeout") ||
-            message.includes("temporar");
-
-          geminiLogger.retryAttempt(attempt + 1, message);
-
-          if (!shouldRetry) break;
-          const backoffMs = 250 * Math.pow(2, attempt); // 250ms, 500ms, 1000ms
-          await new Promise((r) => setTimeout(r, backoffMs));
-          attempt += 1;
-        }
-      }
-      if (!result) {
-        throw lastError instanceof Error
-          ? lastError
-          : new Error("Gemini request failed");
-      }
+          return model.generateContent({
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: prompt,
+                  },
+                  imagePart,
+                ],
+              },
+            ],
+          });
+        },
+        {
+          maxAttempts: 3,
+          baseDelayMs: 250,
+          jitterRatio: 0.2,
+          onRetryAttempt: (attempt, message) =>
+            geminiLogger.retryAttempt(attempt, message),
+        },
+      );
 
       const response = result.response;
       let text: string;
@@ -478,7 +464,7 @@ class GeminiClient {
       try {
         text = response.text();
         if (!text) {
-          throw new Error("Empty response from Gemini API");
+          throw new AIServiceError();
         }
       } catch (error) {
         // Log error details for debugging
@@ -487,13 +473,11 @@ class GeminiClient {
           hasResponse: !!response,
         });
 
-        // Throw user-friendly error
-        throw new Error(
-          error instanceof Error &&
-          error.message === "Empty response from Gemini API"
-            ? error.message
-            : `Failed to parse Gemini response: ${error instanceof Error ? error.message : "Unknown error"}`,
-        );
+        // Throw structured error
+        if (error instanceof AIServiceError) {
+          throw error;
+        }
+        throw new ParseError();
       }
 
       // Debug logging for response
@@ -544,48 +528,49 @@ class GeminiClient {
     } catch (error) {
       geminiLogger.analysisError(error, { options });
 
-      // Re-throw with user-friendly messages
+      // Re-throw structured errors if already categorized
+      if (
+        error instanceof AIServiceError ||
+        error instanceof RateLimitError ||
+        error instanceof NetworkError ||
+        error instanceof ConfigurationError ||
+        error instanceof ParseError ||
+        error instanceof AnalysisError
+      ) {
+        throw error;
+      }
+
+      // Categorize raw errors
       if (error instanceof Error) {
         const message = error.message.toLowerCase();
 
-        // Handle specific Gemini API errors with friendly messages
         if (message.includes("empty response")) {
-          throw new Error(
-            "AIサービスから応答がありませんでした。しばらく待ってから再度お試しください。",
-          );
+          throw new AIServiceError();
         }
 
         if (message.includes("quota") || message.includes("rate limit")) {
-          throw new Error(
-            "AI分析の利用制限に達しました。少し時間をおいてから再度お試しください。",
-          );
+          throw new RateLimitError();
         }
 
         if (message.includes("timeout")) {
-          throw new Error(
-            "AI分析がタイムアウトしました。ネットワーク接続を確認して再度お試しください。",
-          );
+          throw new NetworkError();
         }
 
         if (message.includes("api key") || message.includes("authentication")) {
-          throw new Error(
-            "AI設定にエラーがあります。管理者にお問い合わせください。",
-          );
+          throw new ConfigurationError();
         }
 
         if (message.includes("invalid") || message.includes("parse")) {
-          throw new Error(
-            "AIの応答を処理できませんでした。別の写真で再度お試しください。",
-          );
+          throw new ParseError();
         }
 
-        // Generic error with original message for debugging
-        throw new Error(
-          `画像分析中にエラーが発生しました。時間をおいてから再度お試しください。`,
+        // Generic error
+        throw new AnalysisError(
+          "画像分析中にエラーが発生しました。時間をおいてから再度お試しください。",
         );
       }
 
-      throw new Error("画像分析中に予期しないエラーが発生しました。");
+      throw new AnalysisError("画像分析中に予期しないエラーが発生しました。");
     }
   }
 
@@ -738,8 +723,8 @@ class GeminiClient {
       logger.error("Response parsing failed", error, {
         responsePreview: jsonText.substring(0, 200),
       });
-      throw new Error(
-        `Invalid response format: ${error instanceof Error ? error.message : "Unknown parsing error"}`,
+      throw new ParseError(
+        "AIの応答を処理できませんでした。別の写真で再度お試しください。",
       );
     }
   }
@@ -781,7 +766,9 @@ export function getGeminiClient(): GeminiClient {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY environment variable is not set");
+    throw new ConfigurationError(
+      "GEMINI_API_KEY環境変数が設定されていません。",
+    );
   }
 
   if (!geminiClient) {

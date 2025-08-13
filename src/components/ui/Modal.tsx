@@ -119,14 +119,17 @@ const Modal: React.FC<ModalProps> = ({
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h3 id="modal-title" className="text-lg font-medium text-gray-900">
+          <div className="flex items-center justify-between p-6 border-b border-suzu-neutral-200">
+            <h3
+              id="modal-title"
+              className="text-lg font-medium text-suzu-neutral-900"
+            >
               {title}
             </h3>
             <button
               type="button"
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1 touch-manipulation"
+              className="text-suzu-neutral-400 hover:text-suzu-neutral-700 focus:outline-none focus:ring-2 focus:ring-suzu-primary-500 rounded-md p-1 touch-manipulation"
               aria-label="Close modal"
             >
               <svg

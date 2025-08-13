@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import { DeclutterItem } from "@/lib/types";
+import { SuzuMemoItem } from "@/lib/types";
 
 /**
  * Sanitizes a cell value to prevent CSV injection attacks
@@ -61,9 +61,9 @@ function formatArrayField(array: string[] | undefined): string {
 }
 
 /**
- * Transforms a DeclutterItem to CSV-ready row data
+ * Transforms a SuzuMemoItem to CSV-ready row data
  */
-function transformItemToCSVRow(item: DeclutterItem): Record<string, string> {
+function transformItemToCSVRow(item: SuzuMemoItem): Record<string, string> {
   return {
     ID: sanitizeCSVCell(item.id),
 
@@ -122,9 +122,9 @@ function transformItemToCSVRow(item: DeclutterItem): Record<string, string> {
 }
 
 /**
- * Generates CSV content from DeclutterItem array
+ * Generates CSV content from SuzuMemoItem array
  */
-export function generateCSVContent(items: DeclutterItem[]): string {
+export function generateCSVContent(items: SuzuMemoItem[]): string {
   if (items.length === 0) {
     return "";
   }
@@ -181,7 +181,7 @@ export function downloadCSV(blob: Blob, filename: string): void {
  * Main export function that handles the complete CSV export process
  */
 export function exportItemsToCSV(
-  items: DeclutterItem[],
+  items: SuzuMemoItem[],
   options: {
     filename?: string;
     selectedIds?: string[];
@@ -208,7 +208,7 @@ export function exportItemsToCSV(
       .toISOString()
       .replace(/[:.]/g, "-")
       .slice(0, 19);
-    const filename = options.filename || `declutter-items-${timestamp}.csv`;
+    const filename = options.filename || `suzumemo-items-${timestamp}.csv`;
 
     // Trigger download
     downloadCSV(blob, filename);
@@ -226,7 +226,7 @@ export function exportItemsToCSV(
  * Export utility for filtered/selected items
  */
 export function exportSelectedItems(
-  allItems: DeclutterItem[],
+  allItems: SuzuMemoItem[],
   selectedIds: string[],
   filename?: string,
 ): void {
@@ -236,9 +236,6 @@ export function exportSelectedItems(
 /**
  * Export utility for all items
  */
-export function exportAllItems(
-  items: DeclutterItem[],
-  filename?: string,
-): void {
+export function exportAllItems(items: SuzuMemoItem[], filename?: string): void {
   exportItemsToCSV(items, { filename });
 }

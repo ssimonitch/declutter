@@ -6,10 +6,10 @@ import ItemForm from "@/components/item-form";
 import Alert from "@/components/ui/Alert";
 import { getItem } from "@/lib/db";
 import { getTempCapture, deleteTempCapture } from "@/lib/temp-store";
-import type { DeclutterItem } from "@/lib/types";
+import type { SuzuMemoItem } from "@/lib/types";
 
 interface EditPageState {
-  item: DeclutterItem | null;
+  item: SuzuMemoItem | null;
   loading: boolean;
   error: string | null;
   isNewItem: boolean;
@@ -49,9 +49,9 @@ export default function EditPage() {
             );
           }
 
-          // Create a DeclutterItem with id="new" for new items
+          // Create a SuzuMemoItem with id="new" for new items
           // ItemForm will recognize this and call addItem instead of updateItem
-          const newItem: DeclutterItem = {
+          const newItem: SuzuMemoItem = {
             id: "new", // Special ID that ItemForm recognizes as create mode
             realmId: tempData.realmId || undefined, // Preserve realm ID from capture
             createdAt: new Date().toISOString(),
@@ -178,12 +178,12 @@ export default function EditPage() {
   // Loading state
   if (state.loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-suzu-cream">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
-              <p className="text-gray-600">商品データを読み込み中...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-suzu-primary-500 mx-auto mb-4"></div>
+              <p className="text-suzu-neutral-700">商品データを読み込み中...</p>
             </div>
           </div>
         </div>
@@ -194,12 +194,12 @@ export default function EditPage() {
   // Error state
   if (state.error && !state.item) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-suzu-cream">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="bg-white rounded-lg shadow p-8">
             <div className="text-center">
               <svg
-                className="mx-auto h-12 w-12 text-red-400 mb-4"
+                className="mx-auto h-12 w-12 text-suzu-error mb-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -211,20 +211,20 @@ export default function EditPage() {
                   d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
                 />
               </svg>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <h3 className="text-lg font-medium text-suzu-neutral-900 mb-2">
                 エラーが発生しました
               </h3>
-              <p className="text-gray-600 mb-6">{state.error}</p>
+              <p className="text-suzu-neutral-700 mb-6">{state.error}</p>
               <div className="flex justify-center space-x-4">
                 <button
                   onClick={() => router.push("/dashboard")}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 border border-suzu-brown-300 text-suzu-neutral-800 bg-white rounded-lg hover:bg-suzu-cream transition-colors"
                 >
                   ダッシュボードに戻る
                 </button>
                 <button
                   onClick={() => router.push("/capture")}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  className="px-4 py-2 bg-suzu-error text-white rounded-lg hover:bg-red-600 transition-colors"
                 >
                   写真を撮り直す
                 </button>
@@ -237,14 +237,14 @@ export default function EditPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-suzu-cream">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center space-x-4 mb-4">
             <button
               onClick={handleBack}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center px-3 py-2 border border-suzu-brown-300 text-sm font-medium text-suzu-neutral-800 bg-white rounded-lg hover:bg-suzu-cream transition-colors"
             >
               <svg
                 className="h-4 w-4 mr-2"
@@ -262,10 +262,10 @@ export default function EditPage() {
               戻る
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-suzu-neutral-900">
                 {state.isNewItem ? "商品情報を確認・編集" : "商品情報を編集"}
               </h1>
-              <p className="text-gray-600">
+              <p className="text-suzu-neutral-700">
                 {state.isNewItem
                   ? "AIが分析した結果を確認し、必要に応じて修正してください"
                   : "商品の詳細情報を編集できます"}
@@ -287,10 +287,10 @@ export default function EditPage() {
 
         {/* AI Analysis Notice for new items */}
         {state.isNewItem && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-5">
+          <div className="mb-6 bg-suzu-success-50 border border-suzu-success-200 rounded-lg p-5">
             <div className="flex items-start">
               <svg
-                className="h-6 w-6 text-green-500 mr-3 mt-0.5"
+                className="h-6 w-6 text-suzu-success mr-3 mt-0.5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -303,16 +303,16 @@ export default function EditPage() {
                 />
               </svg>
               <div className="flex-1">
-                <p className="text-base font-medium text-green-900 mb-2">
+                <p className="text-base font-medium text-suzu-success-900 mb-2">
                   AIが商品情報を分析しました
                 </p>
-                <p className="text-sm text-green-800 leading-relaxed">
+                <p className="text-sm text-suzu-success-800 leading-relaxed">
                   写真から自動で認識した情報を表示しています。
                   <br />
                   間違いがある場合は、直接入力して修正できます。
                 </p>
-                <div className="mt-3 p-3 bg-white rounded border border-green-100">
-                  <p className="text-xs text-green-700">
+                <div className="mt-3 p-3 bg-white rounded border border-suzu-success-200">
+                  <p className="text-xs text-suzu-success-700">
                     🔍
                     確認ポイント：商品名、価格帯、おすすめアクションが正しいかご確認ください
                   </p>

@@ -344,7 +344,7 @@ export default function CameraStream({
           <div className="text-center p-8">
             <div className="mb-4">
               <svg
-                className="w-16 h-16 text-red-500 mx-auto"
+                className="w-16 h-16 text-suzu-error mx-auto"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -360,7 +360,7 @@ export default function CameraStream({
             <p className="text-white mb-4">{error}</p>
             <button
               onClick={startCamera}
-              className="bg-white text-black px-4 py-2 rounded-lg font-medium"
+              className="bg-suzu-neutral-50 text-suzu-neutral-800 px-4 py-2 rounded-lg font-medium"
             >
               再試行
             </button>
@@ -448,7 +448,7 @@ export default function CameraStream({
             {/* Capture button */}
             <button
               onClick={capturePhoto}
-              className="bg-white hover:bg-gray-100 active:bg-gray-200 text-black w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-colors shadow-lg touch-manipulation"
+              className="bg-suzu-neutral-50 hover:bg-suzu-neutral-100 active:bg-suzu-neutral-200 text-suzu-neutral-800 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-colors shadow-lg touch-manipulation"
               aria-label="撮影"
             >
               <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-4 border-black" />

@@ -88,7 +88,7 @@ const Toggle: React.FC<ToggleProps> = ({
             <label
               className={clsx(
                 "block text-sm font-medium",
-                disabled ? "text-gray-400" : "text-gray-700",
+                disabled ? "text-suzu-neutral-400" : "text-suzu-neutral-700",
               )}
             >
               {label}
@@ -98,7 +98,7 @@ const Toggle: React.FC<ToggleProps> = ({
             <p
               className={clsx(
                 "text-sm",
-                disabled ? "text-gray-300" : "text-gray-500",
+                disabled ? "text-suzu-neutral-300" : "text-suzu-neutral-500",
               )}
             >
               {description}

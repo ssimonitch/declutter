@@ -11,9 +11,9 @@ const notoSansJP = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "整理アプリ - かんたん片付けサポート",
+  title: "すずメモ - かんたん片付けサポート",
   description:
-    "写真を撮るだけで商品を整理。メルカリ風のシンプルなUIで、ご高齢の方でも簡単に使えます。",
+    "写真を撮るだけで商品を整理。メルカリ風のシンプルなUIで、ご高齢の方でも簡単に使えます。すずメモがお手伝いします。",
 };
 
 export const viewport: Viewport = {
@@ -22,7 +22,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   viewportFit: "cover",
-  themeColor: "#ef4444",
+  themeColor: "#77A3B2",
 };
 
 export default function RootLayout({
@@ -33,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body
-        className={`${notoSansJP.variable} font-sans antialiased bg-gray-50 min-h-screen safe-area-inset`}
+        className={`${notoSansJP.variable} font-sans antialiased bg-suzu-cream min-h-screen safe-area-inset`}
       >
         <ClientShell>{children}</ClientShell>
       </body>

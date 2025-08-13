@@ -1,28 +1,57 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Tailwind v4 Theme Configuration for SuzuMemo */
+@theme {
+  /* Suzu Primary Colors - Cap Blue */
+  --color-suzu-primary-50: #f0f6f8;
+  --color-suzu-primary-100: #e1edf1;
+  --color-suzu-primary-200: #c3dbe3;
+  --color-suzu-primary-300: #a5c9d5;
+  --color-suzu-primary-400: #87b7c7;
+  --color-suzu-primary-500: #77a3b2;
+  --color-suzu-primary-600: #5f8a9c;
+  --color-suzu-primary-700: #4a6e7c;
+  --color-suzu-primary-800: #3a5660;
+  --color-suzu-primary-900: #2a3e44;
+  --color-suzu-primary-950: #1a262b;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Suzu Brown Colors - Body */
+  --color-suzu-brown-50: #fbf8f6;
+  --color-suzu-brown-100: #f7f1ed;
+  --color-suzu-brown-200: #efe3db;
+  --color-suzu-brown-300: #e7d5c9;
+  --color-suzu-brown-400: #dfc7b7;
+  --color-suzu-brown-500: #8c5a3e;
+  --color-suzu-brown-600: #724832;
+  --color-suzu-brown-700: #5a3828;
+  --color-suzu-brown-800: #42281e;
+  --color-suzu-brown-900: #2a1814;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+  /* Suzu Accent Colors */
+  --color-suzu-cream: #f6e8d5;
+  --color-suzu-blush: #f5b7b1;
+  --color-suzu-clipboard: #f2c199;
+  --color-suzu-cream-dark: #c4a678;
+  --color-suzu-blush-dark: #d47b73;
+  --color-suzu-clipboard-dark: #c99562;
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Suzu Neutral Colors */
+  --color-suzu-neutral-50: #fbf8f6;
+  --color-suzu-neutral-100: #f7f1ed;
+  --color-suzu-neutral-200: #efe3db;
+  --color-suzu-neutral-300: #e7d5c9;
+  --color-suzu-neutral-400: #dfc7b7;
+  --color-suzu-neutral-500: #c4a678;
+  --color-suzu-neutral-600: #8c5a3e;
+  --color-suzu-neutral-700: #5a3828;
+  --color-suzu-neutral-800: #42281e;
+  --color-suzu-neutral-900: #2a1814;
+
+  /* Semantic Colors */
+  --color-suzu-success: #5b8c5a;
+  --color-suzu-warning: #d4a373;
+  --color-suzu-error: #c3605c;
+  --color-suzu-info: #77a3b2;
 }
 
 /* Safe area support for notched phones */

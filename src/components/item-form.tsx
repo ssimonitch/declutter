@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { addItem, updateItem, deleteItem } from "@/lib/db";
 import { createBlobUrl, revokeBlobUrl } from "@/lib/image-utils";
 import { ACTION_ENUM, CONDITION_ENUM } from "@/lib/constants";
-import type { DeclutterItem } from "@/lib/types";
+import type { SuzuMemoItem } from "@/lib/types";
 import { useCurrentRealmId } from "@/contexts/realm-context";
 import {
   ItemNamesSection,
@@ -115,7 +115,7 @@ const itemFormSchema = z.object({
 type InferredItemFormData = z.infer<typeof itemFormSchema>;
 
 interface ItemFormProps {
-  item?: DeclutterItem;
+  item?: SuzuMemoItem;
   onSave: (id: string) => void;
   onCancel: () => void;
   onError: (error: string) => void;
@@ -232,7 +232,7 @@ export default function ItemForm({
         // Create new item (no item or id is "new")
         // Cast is safe because we validated photo/thumbnail exist above
         itemId = await addItem(
-          finalData as Omit<DeclutterItem, "id" | "createdAt" | "updatedAt">,
+          finalData as Omit<SuzuMemoItem, "id" | "createdAt" | "updatedAt">,
           currentRealmId,
         );
       }
@@ -284,10 +284,10 @@ export default function ItemForm({
         {/* Photo Preview */}
         {previewUrl && (
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-suzu-neutral-800">
               商品写真
             </label>
-            <div className="w-full h-48 rounded-lg overflow-hidden bg-gray-100">
+            <div className="w-full h-48 rounded-lg overflow-hidden bg-suzu-cream">
               {/* eslint-disable-next-line @next/next/no-img-element -- Blob URLs not supported by Next.js Image */}
               <img
                 src={previewUrl}
@@ -342,8 +342,8 @@ export default function ItemForm({
                 </p>
               </div>
             </div>
-            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-              <p className="text-sm text-gray-700 leading-relaxed">
+            <div className="bg-suzu-cream rounded-lg p-3 border border-suzu-brown-200">
+              <p className="text-sm text-suzu-neutral-800 leading-relaxed">
                 {watchedRationale || "推奨理由を取得中..."}
               </p>
             </div>
@@ -351,7 +351,7 @@ export default function ItemForm({
           {/* Hidden input to maintain form validation */}
           <input type="hidden" {...register("actionRationale")} />
           {errors.actionRationale && (
-            <p className="mt-1 text-sm text-red-600">
+            <p className="mt-1 text-sm text-suzu-error">
               {errors.actionRationale.message}
             </p>
           )}

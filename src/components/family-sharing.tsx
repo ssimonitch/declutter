@@ -11,7 +11,7 @@ import {
 } from "@/lib/db";
 import {
   RealmSummary,
-  DeclutterMember,
+  SuzuMemoMember,
   CreateRealmRequest,
   InviteMemberRequest,
 } from "@/lib/types";
@@ -35,7 +35,7 @@ export default function FamilySharing({
   } = useRealm();
   const [realms, setRealms] = useState<RealmSummary[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<
-    DeclutterMember[]
+    SuzuMemoMember[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,12 +155,12 @@ export default function FamilySharing({
       className={`bg-white rounded-lg shadow p-4 sm:p-6 space-y-4 sm:space-y-6 ${className || ""}`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+        <h2 className="text-lg sm:text-xl font-semibold text-suzu-neutral-900">
           ファミリー共有
         </h2>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 touch-manipulation"
+          className="bg-suzu-primary-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-suzu-primary-600 touch-manipulation"
         >
           家族グループ作成
         </button>
@@ -176,7 +176,7 @@ export default function FamilySharing({
 
       {/* Realm Selector */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-suzu-neutral-800 mb-2">
           現在の表示
         </label>
         <select
@@ -186,7 +186,7 @@ export default function FamilySharing({
               e.target.value === "private" ? null : e.target.value,
             )
           }
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full border border-suzu-brown-300 rounded-md px-3 py-2 text-suzu-neutral-900 focus:ring-2 focus:ring-suzu-primary-500 focus:border-transparent"
         >
           <option value="private">個人のアイテム</option>
           {realms.map((summary, index) => (
@@ -203,20 +203,20 @@ export default function FamilySharing({
       {/* Pending Invitations */}
       {pendingInvitations.length > 0 && (
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-3">
+          <h3 className="text-lg font-medium text-suzu-neutral-900 mb-3">
             保留中の招待
           </h3>
           <div className="space-y-2">
             {pendingInvitations.map((invitation) => (
               <div
                 key={invitation.id}
-                className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-md"
+                className="flex items-center justify-between p-3 bg-suzu-primary-50 border border-suzu-primary-200 rounded-md"
               >
                 <div>
-                  <div className="font-medium text-gray-900">
+                  <div className="font-medium text-suzu-neutral-900">
                     家族グループへの招待
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-suzu-neutral-700">
                     招待日：
                     {invitation.invited
                       ? invitation.invited.toLocaleDateString("ja-JP")
@@ -227,7 +227,7 @@ export default function FamilySharing({
                   onClick={() =>
                     invitation.id && handleAcceptInvitation(invitation.id)
                   }
-                  className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                  className="bg-suzu-primary-500 text-white px-3 py-1 rounded text-sm hover:bg-suzu-primary-600"
                 >
                   承認
                 </button>
@@ -240,7 +240,7 @@ export default function FamilySharing({
       {/* Current Realm Summary */}
       {currentRealmId && (
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-3">
+          <h3 className="text-lg font-medium text-suzu-neutral-900 mb-3">
             家族グループ
           </h3>
           <div className="space-y-4">
@@ -254,19 +254,19 @@ export default function FamilySharing({
               .map((summary) => (
                 <div
                   key={summary.realm.realmId}
-                  className="border border-gray-200 rounded-md p-4"
+                  className="border border-suzu-brown-200 rounded-md p-4"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-medium text-gray-900">
+                      <h4 className="font-medium text-suzu-neutral-900">
                         {summary.realm.name}
                       </h4>
                       {summary.realm.description && (
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-suzu-neutral-700">
                           {summary.realm.description}
                         </p>
                       )}
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-suzu-neutral-700">
                         {summary.itemCount} 件のアイテム •{" "}
                         {summary.members.length} 人のメンバー
                         {summary.isOwner && " • あなたがオーナーです"}
@@ -275,7 +275,7 @@ export default function FamilySharing({
                     {summary.isOwner && (
                       <button
                         onClick={() => setShowInviteForm(summary.realm.realmId)}
-                        className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 touch-manipulation flex-shrink-0"
+                        className="bg-suzu-success text-white px-3 py-1 rounded text-sm hover:bg-suzu-primary-600 touch-manipulation flex-shrink-0"
                       >
                         招待
                       </button>
@@ -289,21 +289,21 @@ export default function FamilySharing({
                       .map((member, memberIndex) => (
                         <div
                           key={`${member.id || memberIndex}-${member.email || memberIndex}`}
-                          className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                          className="flex items-center justify-between p-2 bg-suzu-cream rounded"
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-1">
-                              <span className="font-medium text-gray-600">
+                              <span className="font-medium text-suzu-neutral-800">
                                 {member.name || "不明"}
                               </span>
                               {member.roles?.includes("owner") && (
-                                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+                                <span className="bg-suzu-primary-100 text-suzu-primary-800 px-2 py-0.5 rounded text-xs">
                                   オーナー
                                 </span>
                               )}
                             </div>
                             {member.email && (
-                              <div className="text-sm text-gray-600 truncate max-w-full">
+                              <div className="text-sm text-suzu-neutral-700 truncate max-w-full">
                                 {member.email}
                               </div>
                             )}
@@ -314,7 +314,7 @@ export default function FamilySharing({
                                 onClick={() =>
                                   member.id && handleRemoveMember(member.id)
                                 }
-                                className="text-red-600 text-sm hover:text-red-800 ml-2 flex-shrink-0"
+                                className="text-suzu-error text-sm hover:text-red-800 ml-2 flex-shrink-0"
                               >
                                 削除
                               </button>
@@ -337,7 +337,7 @@ export default function FamilySharing({
       >
         <form onSubmit={handleCreateRealm} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-suzu-neutral-800 mb-1">
               グループ名 *
             </label>
             <input
@@ -345,12 +345,12 @@ export default function FamilySharing({
               value={newRealmName}
               onChange={(e) => setNewRealmName(e.target.value)}
               placeholder="例：田中家"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              className="w-full border border-suzu-brown-300 rounded-md px-3 py-2 text-suzu-neutral-900 placeholder-suzu-neutral-500 focus:ring-2 focus:ring-suzu-primary-500 focus:border-transparent touch-manipulation"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-suzu-neutral-800 mb-1">
               説明
             </label>
             <input
@@ -358,20 +358,20 @@ export default function FamilySharing({
               value={newRealmDescription}
               onChange={(e) => setNewRealmDescription(e.target.value)}
               placeholder="家族の片付けプロジェクト"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              className="w-full border border-suzu-brown-300 rounded-md px-3 py-2 text-suzu-neutral-900 placeholder-suzu-neutral-500 focus:ring-2 focus:ring-suzu-primary-500 focus:border-transparent touch-manipulation"
             />
           </div>
           <div className="flex gap-2">
             <button
               type="submit"
-              className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
+              className="flex-1 bg-suzu-primary-500 text-white py-2 rounded-md hover:bg-suzu-primary-600 focus:outline-none focus:ring-2 focus:ring-suzu-primary-500 touch-manipulation"
             >
               作成
             </button>
             <button
               type="button"
               onClick={() => setShowCreateForm(false)}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 touch-manipulation"
+              className="flex-1 bg-suzu-brown-300 text-suzu-brown-700 py-2 rounded-md hover:bg-suzu-brown-400 focus:outline-none focus:ring-2 focus:ring-suzu-brown-500 touch-manipulation"
             >
               キャンセル
             </button>
@@ -388,7 +388,7 @@ export default function FamilySharing({
       >
         <form onSubmit={handleInviteMember} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-suzu-neutral-800 mb-1">
               名前 *
             </label>
             <input
@@ -396,12 +396,12 @@ export default function FamilySharing({
               value={inviteName}
               onChange={(e) => setInviteName(e.target.value)}
               placeholder="姉 由紀"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              className="w-full border border-suzu-brown-300 rounded-md px-3 py-2 text-suzu-neutral-900 placeholder-suzu-neutral-500 focus:ring-2 focus:ring-suzu-primary-500 focus:border-transparent touch-manipulation"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-suzu-neutral-800 mb-1">
               メールアドレス *
             </label>
             <input
@@ -409,21 +409,21 @@ export default function FamilySharing({
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
               placeholder="yuki@example.com"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              className="w-full border border-suzu-brown-300 rounded-md px-3 py-2 text-suzu-neutral-900 placeholder-suzu-neutral-500 focus:ring-2 focus:ring-suzu-primary-500 focus:border-transparent touch-manipulation"
               required
             />
           </div>
           <div className="flex gap-2">
             <button
               type="submit"
-              className="flex-1 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 touch-manipulation"
+              className="flex-1 bg-suzu-success text-white py-2 rounded-md hover:bg-suzu-primary-600 focus:outline-none focus:ring-2 focus:ring-suzu-success touch-manipulation"
             >
               招待を送信
             </button>
             <button
               type="button"
               onClick={() => setShowInviteForm(null)}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 touch-manipulation"
+              className="flex-1 bg-suzu-brown-300 text-suzu-brown-700 py-2 rounded-md hover:bg-suzu-brown-400 focus:outline-none focus:ring-2 focus:ring-suzu-brown-500 touch-manipulation"
             >
               キャンセル
             </button>

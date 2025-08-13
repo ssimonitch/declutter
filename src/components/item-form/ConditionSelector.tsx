@@ -14,8 +14,8 @@ const ConditionSelector: React.FC<ConditionSelectorProps> = ({
 }) => {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        商品状態 <span className="text-red-500">*</span>
+      <label className="block text-sm font-medium text-suzu-neutral-700 mb-2">
+        商品状態 <span className="text-suzu-error">*</span>
       </label>
       <Controller
         name="condition"
@@ -28,7 +28,7 @@ const ConditionSelector: React.FC<ConditionSelectorProps> = ({
                 className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors min-h-[60px] ${
                   field.value === option.value
                     ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-gray-300"
+                    : "border-suzu-neutral-200 hover:border-suzu-neutral-300"
                 }`}
               >
                 <input
@@ -38,10 +38,10 @@ const ConditionSelector: React.FC<ConditionSelectorProps> = ({
                   className="sr-only"
                 />
                 <div className="flex-1">
-                  <div className="font-medium text-gray-900">
+                  <div className="font-medium text-suzu-neutral-900">
                     {option.label}
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-suzu-neutral-500">
                     {option.description}
                   </div>
                 </div>
@@ -51,7 +51,9 @@ const ConditionSelector: React.FC<ConditionSelectorProps> = ({
         )}
       />
       {errors.condition && (
-        <p className="mt-1 text-sm text-red-600">{errors.condition.message}</p>
+        <p className="mt-1 text-sm text-suzu-error">
+          {errors.condition.message}
+        </p>
       )}
     </div>
   );

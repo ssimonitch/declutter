@@ -17,7 +17,7 @@ interface RealmContextType {
 
 const RealmContext = createContext<RealmContextType | undefined>(undefined);
 
-const REALM_STORAGE_KEY = "declutter-current-realm-id";
+const REALM_STORAGE_KEY = "suzumemo-current-realm-id";
 
 interface RealmProviderProps {
   children: ReactNode;

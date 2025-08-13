@@ -5,6 +5,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeItemImage, testGeminiConnection } from "@/lib/gemini";
 import { getExaMetrics } from "@/lib/exa";
 import { logger } from "@/lib/logger";
+import {
+  categorizeError,
+  ConfigurationError,
+  ValidationError,
+} from "@/lib/errors";
 import type { AnalyzeApiResponse } from "@/lib/types";
 
 // Maximum file size for uploads (10MB)
@@ -31,28 +36,33 @@ export async function POST(
 
     // Validate environment variables
     if (!process.env.GEMINI_API_KEY) {
+      const error = new ConfigurationError(
+        "AI設定にエラーがあります。管理者にお問い合わせください。",
+      );
       logger.error("GEMINI_API_KEY environment variable not configured");
       return NextResponse.json(
         {
           success: false,
-          error: "API configuration error. Please check server configuration.",
+          error: error.message,
         },
-        { status: 500 },
+        { status: error.statusCode },
       );
     }
 
     // EXA_API_KEY is only required if exaSearch is enabled
     if (formData.get("exaSearch") === "true" && !process.env.EXA_API_KEY) {
+      const error = new ConfigurationError(
+        "Exa検索の設定にエラーがあります。管理者にお問い合わせください。",
+      );
       logger.error(
         "EXA_API_KEY environment variable not configured for Exa search",
       );
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Exa Search configuration error. Please check server configuration.",
+          error: error.message,
         },
-        { status: 500 },
+        { status: error.statusCode },
       );
     }
     const imageFile = formData.get("image") as File;
@@ -62,46 +72,58 @@ export async function POST(
 
     // Validate required fields
     if (!imageFile) {
+      const error = new ValidationError(
+        "画像ファイルが選択されていません。画像をアップロードしてください。",
+      );
       return NextResponse.json(
         {
           success: false,
-          error: "No image file provided. Please upload an image.",
+          error: error.message,
         },
-        { status: 400 },
+        { status: error.statusCode },
       );
     }
 
     // Validate file type
     if (!SUPPORTED_MIME_TYPES.includes(imageFile.type)) {
+      const error = new ValidationError(
+        `サポートされていない画像形式です: ${imageFile.type}。対応形式: JPEG, PNG, WebP`,
+      );
       return NextResponse.json(
         {
           success: false,
-          error: `Unsupported image format: ${imageFile.type}. Supported formats: JPEG, PNG, WebP`,
+          error: error.message,
         },
-        { status: 400 },
+        { status: error.statusCode },
       );
     }
 
     // Validate file size
     if (imageFile.size > MAX_FILE_SIZE) {
       const sizeMB = Math.round(imageFile.size / (1024 * 1024));
+      const error = new ValidationError(
+        `画像サイズが大きすぎます: ${sizeMB}MB。最大サイズ: ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
+      );
       return NextResponse.json(
         {
           success: false,
-          error: `Image too large: ${sizeMB}MB. Maximum size: ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
+          error: error.message,
         },
-        { status: 400 },
+        { status: error.statusCode },
       );
     }
 
     // Validate file is actually an image
     if (imageFile.size === 0) {
+      const error = new ValidationError(
+        "空のファイルです。有効な画像をアップロードしてください。",
+      );
       return NextResponse.json(
         {
           success: false,
-          error: "Empty file provided. Please upload a valid image.",
+          error: error.message,
         },
-        { status: 400 },
+        { status: error.statusCode },
       );
     }
 
@@ -156,92 +178,17 @@ export async function POST(
     // Log detailed error for debugging
     logger.error("Image analysis API error", error);
 
-    // Handle specific error types
-    if (error instanceof Error) {
-      // Check if it's already a user-friendly Japanese message from Gemini
-      const message = error.message;
-      if (
-        message.includes("AI") ||
-        message.includes("分析") ||
-        message.includes("エラー")
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: message,
-          },
-          { status: 503 },
-        );
-      }
+    // Categorize the error using our structured error system
+    const appError = categorizeError(error);
 
-      // Gemini API errors
-      if (message.includes("API key")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "AI設定にエラーがあります。管理者にお問い合わせください。",
-          },
-          { status: 500 },
-        );
-      }
-
-      // Rate limiting errors
-      if (message.includes("quota") || message.includes("rate")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              "AI分析の利用制限に達しました。少し時間をおいてから再度お試しください。",
-          },
-          { status: 429 },
-        );
-      }
-
-      // Image processing errors
-      if (message.includes("base64") || message.includes("compression")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              "画像の処理に失敗しました。別の画像または形式でお試しください。",
-          },
-          { status: 400 },
-        );
-      }
-
-      // Network/timeout errors
-      if (message.includes("network") || message.includes("timeout")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              "ネットワークエラーが発生しました。接続を確認して再度お試しください。",
-          },
-          { status: 503 },
-        );
-      }
-
-      // Analysis/parsing errors
-      if (message.includes("analysis") || message.includes("parsing")) {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              "画像を分析できませんでした。写真が不鮮明か、識別可能な商品が含まれていない可能性があります。",
-          },
-          { status: 422 },
-        );
-      }
-    }
-
-    // Generic error response
+    // Return the appropriate error response
     return NextResponse.json(
       {
         success: false,
-        error:
-          "画像分析中に予期しないエラーが発生しました。時間をおいてから再度お試しください。",
+        error: appError.message,
+        code: appError.code, // Include error code for debugging
       },
-      { status: 500 },
+      { status: appError.statusCode },
     );
   }
 }

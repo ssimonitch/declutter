@@ -1,4 +1,4 @@
-// Image Processing Utilities for Declutter App MVP
+// Image Processing Utilities for SuzuMemo App
 // Handles image compression, thumbnails, storage management, and blob utilities
 
 import imageCompression from "browser-image-compression";

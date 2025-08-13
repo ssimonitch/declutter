@@ -81,8 +81,8 @@ const PriceSection: React.FC<PriceSectionProps> = ({
               <span className="text-yellow-700">中 (50-79%): 一部不明</span>
             </div>
             <div className="flex items-center">
-              <span className="w-2 h-2 bg-red-500 rounded-full mr-1.5"></span>
-              <span className="text-red-700">低 (0-49%): データ不足</span>
+              <span className="w-2 h-2 bg-suzu-error rounded-full mr-1.5"></span>
+              <span className="text-suzu-error">低 (0-49%): データ不足</span>
             </div>
           </div>
         </div>
@@ -97,7 +97,7 @@ const PriceSection: React.FC<PriceSectionProps> = ({
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-gray-600 mb-1">
+                <label className="block text-xs text-suzu-neutral-600 mb-1">
                   最低価格
                 </label>
                 <input
@@ -113,12 +113,12 @@ const PriceSection: React.FC<PriceSectionProps> = ({
                       value ? parseInt(value) : 0,
                     );
                   }}
-                  className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 font-medium text-base touch-manipulation"
+                  className="w-full px-3 py-3 border border-suzu-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-suzu-neutral-900 font-medium text-base touch-manipulation"
                   placeholder="0"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">
+                <label className="block text-xs text-suzu-neutral-600 mb-1">
                   最高価格
                 </label>
                 <input
@@ -134,7 +134,7 @@ const PriceSection: React.FC<PriceSectionProps> = ({
                       value ? parseInt(value) : 0,
                     );
                   }}
-                  className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 font-medium text-base touch-manipulation"
+                  className="w-full px-3 py-3 border border-suzu-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-suzu-neutral-900 font-medium text-base touch-manipulation"
                   placeholder="0"
                 />
               </div>
@@ -184,7 +184,7 @@ const PriceSection: React.FC<PriceSectionProps> = ({
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-gray-600 mb-1">
+                <label className="block text-xs text-suzu-neutral-600 mb-1">
                   最低価格
                 </label>
                 <input
@@ -200,12 +200,12 @@ const PriceSection: React.FC<PriceSectionProps> = ({
                       value ? parseInt(value) : 0,
                     );
                   }}
-                  className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-900 font-medium text-base touch-manipulation"
+                  className="w-full px-3 py-3 border border-suzu-neutral-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-suzu-neutral-900 font-medium text-base touch-manipulation"
                   placeholder="0"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">
+                <label className="block text-xs text-suzu-neutral-600 mb-1">
                   最高価格
                 </label>
                 <input
@@ -221,7 +221,7 @@ const PriceSection: React.FC<PriceSectionProps> = ({
                       value ? parseInt(value) : 0,
                     );
                   }}
-                  className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-900 font-medium text-base touch-manipulation"
+                  className="w-full px-3 py-3 border border-suzu-neutral-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-suzu-neutral-900 font-medium text-base touch-manipulation"
                   placeholder="0"
                 />
               </div>

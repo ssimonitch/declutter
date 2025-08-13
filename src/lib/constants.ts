@@ -1,10 +1,10 @@
 /**
- * Centralized constants for the Declutter AI application
+ * Centralized constants for the SuzuMemo application
  * Contains shared configuration for actions, categories, and conditions
  * to ensure consistency across components and single source of truth
  */
 
-import type { DeclutterItem } from "./types";
+import type { SuzuMemoItem } from "./types";
 
 // ============================================
 // ACTION CONFIGURATION
@@ -23,15 +23,16 @@ export const ACTION_CONFIG = {
     description: "手元に残す品物",
 
     // Color variations for different contexts
-    color: "bg-blue-500", // Solid background
-    lightColor: "bg-blue-100", // Light background
-    textColor: "text-blue-800", // Dark text on light background
-    borderColor: "border-blue-200", // Border color
+    color: "bg-suzu-primary-500", // Solid background
+    lightColor: "bg-suzu-primary-100", // Light background
+    textColor: "text-suzu-primary-800", // Dark text on light background
+    borderColor: "border-suzu-primary-200", // Border color
 
     // Action-specific variants
     actionLabel: "保管する",
     actionDescription: "今後も使うので残す",
-    actionColor: "bg-blue-100 text-blue-800 border-blue-200",
+    actionColor:
+      "bg-suzu-primary-100 text-suzu-primary-800 border-suzu-primary-200",
   },
   online: {
     value: "online" as const,
@@ -39,7 +40,7 @@ export const ACTION_CONFIG = {
     icon: "💰",
     description: "メルカリ・ヤフオク等で販売",
 
-    color: "bg-green-500",
+    color: "bg-suzu-success",
     lightColor: "bg-green-100",
     textColor: "text-green-800",
     borderColor: "border-green-200",
@@ -54,7 +55,7 @@ export const ACTION_CONFIG = {
     icon: "🏪",
     description: "実店舗で販売",
 
-    color: "bg-yellow-500",
+    color: "bg-suzu-warning",
     lightColor: "bg-yellow-100",
     textColor: "text-yellow-800",
     borderColor: "border-yellow-200",
@@ -69,7 +70,7 @@ export const ACTION_CONFIG = {
     icon: "❤️",
     description: "NPO・福祉施設等に寄付",
 
-    color: "bg-purple-500",
+    color: "bg-suzu-blush-dark",
     lightColor: "bg-purple-100",
     textColor: "text-purple-800",
     borderColor: "border-purple-200",
@@ -84,7 +85,7 @@ export const ACTION_CONFIG = {
     icon: "🗑️",
     description: "ゴミとして処分",
 
-    color: "bg-red-500",
+    color: "bg-suzu-error",
     lightColor: "bg-red-100",
     textColor: "text-red-800",
     borderColor: "border-red-200",
@@ -241,7 +242,7 @@ export function getActionDisplay(
 /**
  * Calculate action statistics from items array
  */
-export function calculateActionStats(items: DeclutterItem[]) {
+export function calculateActionStats(items: SuzuMemoItem[]) {
   const stats = Object.fromEntries(
     ACTION_TYPES.map((action) => [action, 0]),
   ) as Record<ActionType, number>;
@@ -258,7 +259,7 @@ export function calculateActionStats(items: DeclutterItem[]) {
 /**
  * Calculate category statistics from items array
  */
-export function calculateCategoryStats(items: DeclutterItem[]) {
+export function calculateCategoryStats(items: SuzuMemoItem[]) {
   const stats = new Map<string, number>();
 
   items.forEach((item) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import DatabaseInitializer from "@/components/database-initializer";
@@ -25,7 +26,7 @@ function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 safe-top">
+    <nav className="bg-suzu-cream border-b border-suzu-neutral-200 sticky top-0 z-50 safe-top">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo and brand */}
@@ -34,14 +35,19 @@ function Navigation() {
               href="/dashboard"
               className="flex items-center space-x-2 sm:space-x-3"
             >
-              <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xl font-bold">整</span>
-              </div>
+              <Image
+                src="/images/suzumemo-logo-notext.png"
+                alt="すずメモ"
+                width={48}
+                height={48}
+                className="w-12 h-12 flex-shrink-0"
+                priority
+              />
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
-                  整理アプリ
+                <h1 className="text-lg sm:text-xl font-bold text-suzu-neutral-800 truncate">
+                  すずメモ
                 </h1>
-                <p className="text-xs text-gray-500 hidden sm:block">
+                <p className="text-xs text-suzu-neutral-600 hidden sm:block">
                   かんたん片付けサポート
                 </p>
               </div>
@@ -58,8 +64,8 @@ function Navigation() {
                   href={item.href}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-red-100 text-red-700"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      ? "bg-suzu-primary-100 text-suzu-primary-700"
+                      : "text-suzu-neutral-600 hover:text-suzu-neutral-800 hover:bg-suzu-neutral-100"
                   }`}
                 >
                   <span className="mr-2">{item.icon}</span>
@@ -73,7 +79,7 @@ function Navigation() {
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="inline-flex items-center justify-center p-3 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500 min-h-[44px] min-w-[44px] touch-manipulation"
+              className="inline-flex items-center justify-center p-3 rounded-md text-suzu-neutral-600 hover:text-suzu-neutral-800 hover:bg-suzu-neutral-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-suzu-primary-500 min-h-[44px] min-w-[44px] touch-manipulation"
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-menu"
               aria-label={
@@ -121,7 +127,7 @@ function Navigation() {
         {isMobileMenuOpen && (
           <div
             id="mobile-menu"
-            className="md:hidden border-t border-gray-200 bg-gray-50"
+            className="md:hidden border-t border-suzu-neutral-200 bg-suzu-neutral-100"
           >
             <div className="px-4 pt-3 pb-4 space-y-2">
               {navigationItems.map((item) => {
@@ -132,8 +138,8 @@ function Navigation() {
                     href={item.href}
                     className={`flex items-center px-4 py-3 rounded-lg text-base font-medium transition-colors min-h-[52px] touch-manipulation ${
                       isActive
-                        ? "bg-red-100 text-red-700"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-white active:bg-gray-100"
+                        ? "bg-suzu-primary-100 text-suzu-primary-700"
+                        : "text-suzu-neutral-600 hover:text-suzu-neutral-800 hover:bg-suzu-cream active:bg-suzu-neutral-200"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >

@@ -24,16 +24,16 @@ const Alert: React.FC<AlertProps> = ({
 
   const variantClasses = {
     success: "bg-green-50 border-green-200 text-green-900",
-    info: "bg-blue-50 border-blue-200 text-blue-900",
+    info: "bg-suzu-primary-50 border-suzu-primary-200 text-suzu-primary-900",
     warning: "bg-yellow-50 border-yellow-200 text-yellow-900",
     error: "bg-red-50 border-red-200 text-red-900",
   };
 
   const iconClasses = {
-    success: "text-green-600",
-    info: "text-blue-600",
-    warning: "text-yellow-600",
-    error: "text-red-600",
+    success: "text-suzu-success",
+    info: "text-suzu-primary-600",
+    warning: "text-suzu-warning",
+    error: "text-suzu-error",
   };
 
   const icons = {

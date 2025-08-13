@@ -45,7 +45,7 @@ export default function CapturePage() {
 
   // Load saved municipality from localStorage
   useEffect(() => {
-    const savedMunicipality = localStorage.getItem("declutter_municipality");
+    const savedMunicipality = localStorage.getItem("suzumemo_municipality");
     if (savedMunicipality) {
       setState((prev) => ({
         ...prev,
@@ -58,7 +58,7 @@ export default function CapturePage() {
 
   // Handle municipality selection
   const handleMunicipalitySelect = useCallback((code: string) => {
-    localStorage.setItem("declutter_municipality", code);
+    localStorage.setItem("suzumemo_municipality", code);
     setState((prev) => ({
       ...prev,
       selectedMunicipality: code,
@@ -172,14 +172,14 @@ export default function CapturePage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-suzu-cream">
       <div className="w-full max-w-none sm:max-w-2xl sm:mx-auto px-4 py-4 sm:px-6 sm:py-6">
         {/* Header */}
         <div className="mb-6 text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+          <h1 className="text-2xl sm:text-3xl font-bold text-suzu-neutral-900 mb-3">
             商品を追加
           </h1>
-          <p className="text-gray-600 text-base leading-relaxed px-2">
+          <p className="text-suzu-neutral-700 text-base leading-relaxed px-2">
             写真を撮影すると、自動で商品情報を分析します
           </p>
         </div>
@@ -197,11 +197,11 @@ export default function CapturePage() {
 
         {/* Municipality Info */}
         {selectedMunicipalityInfo && !state.showMunicipalitySelector && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="mb-6 bg-suzu-primary-50 border border-suzu-primary-200 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <svg
-                  className="h-5 w-5 text-blue-400 mr-2"
+                  className="h-5 w-5 text-suzu-primary-400 mr-2"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -220,19 +220,19 @@ export default function CapturePage() {
                   />
                 </svg>
                 <div>
-                  <p className="text-sm font-medium text-blue-900">
+                  <p className="text-sm font-medium text-suzu-primary-900">
                     設定済み地域:{" "}
                     {selectedMunicipalityInfo.fullName ||
                       selectedMunicipalityInfo.name}
                   </p>
-                  <p className="text-xs text-blue-700">
+                  <p className="text-xs text-suzu-primary-800">
                     処分費用の算出に使用されます
                   </p>
                 </div>
               </div>
               <button
                 onClick={handleChangeMunicipality}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                className="text-suzu-primary-700 hover:text-suzu-primary-800 text-sm font-medium"
               >
                 変更
               </button>
@@ -251,7 +251,7 @@ export default function CapturePage() {
           preventCloseOnBackdrop={true}
         >
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-suzu-neutral-700">
               処分費用の算出に必要です。後で変更可能です。
             </p>
 
@@ -261,12 +261,12 @@ export default function CapturePage() {
                   <button
                     key={municipality.code}
                     onClick={() => handleMunicipalitySelect(municipality.code)}
-                    className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
+                    className="w-full text-left px-4 py-3 rounded-lg border border-suzu-brown-200 hover:bg-suzu-cream hover:border-suzu-brown-300 transition-colors focus:outline-none focus:ring-2 focus:ring-suzu-primary-500 touch-manipulation"
                   >
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-suzu-neutral-900">
                       {municipality.fullName || municipality.name}
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-suzu-neutral-700">
                       自治体コード: {municipality.code}
                     </div>
                   </button>
@@ -274,8 +274,8 @@ export default function CapturePage() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-200 bg-gray-50 -m-6 mt-4">
-              <p className="text-xs text-gray-500">
+            <div className="p-4 border-t border-suzu-brown-200 bg-suzu-cream -m-6 mt-4">
+              <p className="text-xs text-suzu-neutral-700">
                 お住まいの地域が見つからない場合は、最寄りの大きな都市を選択してください。
               </p>
             </div>
@@ -285,15 +285,17 @@ export default function CapturePage() {
         {/* Analysis Settings */}
         {!state.showMunicipalitySelector && (
           <div className="mb-6 bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-700 mb-4">分析設定</h3>
+            <h3 className="text-sm font-medium text-suzu-neutral-800 mb-4">
+              分析設定
+            </h3>
 
             {/* Precision Mode Toggle */}
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-suzu-neutral-900">
                   精度優先モード
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-suzu-neutral-700 mt-1">
                   高度な推論モデルを使用してより詳細な分析を行います
                 </p>
               </div>
@@ -305,7 +307,9 @@ export default function CapturePage() {
                   }))
                 }
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  state.precisionMode ? "bg-blue-600" : "bg-gray-200"
+                  state.precisionMode
+                    ? "bg-suzu-primary-600"
+                    : "bg-suzu-brown-200"
                 }`}
                 role="switch"
                 aria-checked={state.precisionMode}
@@ -320,20 +324,20 @@ export default function CapturePage() {
             </div>
 
             {/* Exa Search Toggle */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between pt-4 border-t border-suzu-brown-100">
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-suzu-neutral-900">
                   Exa Search連携
-                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-suzu-success-100 text-suzu-success-800">
                     推奨
                   </span>
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-suzu-neutral-700 mt-1">
                   最新の日本市場情報をExa検索で取得し、より正確な価格分析を行います
                 </p>
                 {state.exaSearch && (
                   <div className="mt-2 p-2 bg-green-50 rounded-md">
-                    <p className="text-xs text-green-700">
+                    <p className="text-xs text-suzu-success-700">
                       <strong>メリット:</strong> Exa
                       Searchは常に構造化された形式で応答するため、
                       安定した分析結果を提供します。
@@ -349,7 +353,7 @@ export default function CapturePage() {
                   }))
                 }
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  state.exaSearch ? "bg-green-600" : "bg-gray-200"
+                  state.exaSearch ? "bg-suzu-success" : "bg-suzu-brown-200"
                 }`}
                 role="switch"
                 aria-checked={state.exaSearch}
@@ -380,7 +384,7 @@ export default function CapturePage() {
             {/* Captured Image During Analysis */}
             {state.isAnalyzing && state.capturedImageUrl && (
               <div className="relative">
-                <div className="aspect-[4/3] w-full rounded-lg overflow-hidden bg-gray-100">
+                <div className="aspect-[4/3] w-full rounded-lg overflow-hidden bg-suzu-neutral-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={state.capturedImageUrl}
@@ -391,7 +395,7 @@ export default function CapturePage() {
                     <div className="bg-white rounded-lg p-4 max-w-sm mx-4">
                       <div className="flex items-center">
                         <svg
-                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600"
+                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-suzu-primary-600"
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
                           viewBox="0 0 24 24"
@@ -411,10 +415,10 @@ export default function CapturePage() {
                           ></path>
                         </svg>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-suzu-neutral-900">
                             AI分析中...
                           </p>
-                          <p className="text-xs text-gray-600">
+                          <p className="text-xs text-suzu-neutral-700">
                             {state.exaSearch
                               ? "最新の市場データを検索中"
                               : "商品情報を認識中"}
@@ -431,36 +435,36 @@ export default function CapturePage() {
 
         {/* Help Text */}
         {!state.showMunicipalitySelector && (
-          <div className="mt-6 bg-blue-50 rounded-lg p-5 border border-blue-200">
-            <h3 className="text-base font-medium text-blue-900 mb-3">
+          <div className="mt-6 bg-suzu-primary-50 rounded-lg p-5 border border-suzu-primary-200">
+            <h3 className="text-base font-medium text-suzu-primary-900 mb-3">
               📷 撮影のポイント
             </h3>
-            <ul className="text-sm text-blue-800 space-y-2">
+            <ul className="text-sm text-suzu-primary-800 space-y-2">
               <li className="flex items-start">
-                <span className="text-blue-600 mr-2">✓</span>
+                <span className="text-suzu-primary-700 mr-2">✓</span>
                 <span>商品全体が画面に収まるように撮影しましょう</span>
               </li>
               <li className="flex items-start">
-                <span className="text-blue-600 mr-2">✓</span>
+                <span className="text-suzu-primary-700 mr-2">✓</span>
                 <span>
                   窓際や電気の下など、明るい場所で撮影するときれいに写ります
                 </span>
               </li>
               <li className="flex items-start">
-                <span className="text-blue-600 mr-2">✓</span>
+                <span className="text-suzu-primary-700 mr-2">✓</span>
                 <span>
                   メーカー名や型番がある場合は、それも写すとAIが正確に判別できます
                 </span>
               </li>
               <li className="flex items-start">
-                <span className="text-blue-600 mr-2">✓</span>
+                <span className="text-suzu-primary-700 mr-2">✓</span>
                 <span>
                   1回に1つの商品を撮影してください（複数同時は避けましょう）
                 </span>
               </li>
             </ul>
-            <div className="mt-3 p-3 bg-white rounded border border-blue-100">
-              <p className="text-xs text-blue-700">
+            <div className="mt-3 p-3 bg-white rounded border border-suzu-primary-200">
+              <p className="text-xs text-suzu-primary-800">
                 💡
                 ヒント：スマートフォンを横向きにすると、より広い範囲が撮影できます
               </p>

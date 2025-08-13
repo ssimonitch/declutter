@@ -22,16 +22,16 @@ import {
 import { createBlobUrl, revokeBlobUrl } from "@/lib/image-utils";
 import { ACTION_CONFIG } from "@/lib/constants";
 import { useCurrentRealmId } from "@/contexts/realm-context";
-import type { DeclutterItem } from "@/lib/types";
+import type { SuzuMemoItem } from "@/lib/types";
 
 interface ItemsTableProps {
-  onRowClick?: (item: DeclutterItem) => void;
+  onRowClick?: (item: SuzuMemoItem) => void;
   onSelectionChange?: (selectedIds: string[]) => void;
   className?: string;
   refreshTrigger?: number; // Used to trigger data refresh
 }
 
-const columnHelper = createColumnHelper<DeclutterItem>();
+const columnHelper = createColumnHelper<SuzuMemoItem>();
 
 export default function ItemsTable({
   onRowClick,
@@ -40,7 +40,7 @@ export default function ItemsTable({
   refreshTrigger = 0,
 }: ItemsTableProps) {
   const currentRealmId = useCurrentRealmId();
-  const [data, setData] = useState<DeclutterItem[]>([]);
+  const [data, setData] = useState<SuzuMemoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -94,7 +94,7 @@ export default function ItemsTable({
     setError(null);
 
     try {
-      let items: DeclutterItem[];
+      let items: SuzuMemoItem[];
 
       // Apply filters in priority order
       if (debouncedGlobalFilter.trim()) {
@@ -162,7 +162,7 @@ export default function ItemsTable({
             type="checkbox"
             checked={table.getIsAllRowsSelected()}
             onChange={table.getToggleAllRowsSelectedHandler()}
-            className="rounded border-gray-300"
+            className="rounded border-suzu-brown-300"
           />
         ),
         cell: ({ row }) => (
@@ -170,7 +170,7 @@ export default function ItemsTable({
             type="checkbox"
             checked={row.getIsSelected()}
             onChange={row.getToggleSelectedHandler()}
-            className="rounded border-gray-300"
+            className="rounded border-suzu-brown-300"
           />
         ),
         size: 50,
@@ -183,7 +183,7 @@ export default function ItemsTable({
         cell: ({ row }) => {
           const imageUrl = imageUrls.get(row.original.id);
           return (
-            <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+            <div className="w-12 h-12 rounded-lg overflow-hidden bg-suzu-cream flex-shrink-0">
               {imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- Blob URLs not supported by Next.js Image
                 <img
@@ -192,7 +192,7 @@ export default function ItemsTable({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                <div className="w-full h-full flex items-center justify-center text-suzu-neutral-400">
                   <svg
                     className="w-6 h-6"
                     fill="none"
@@ -220,11 +220,11 @@ export default function ItemsTable({
         header: "商品名",
         cell: ({ row }) => (
           <div className="min-w-0">
-            <div className="font-medium text-gray-900 truncate">
+            <div className="font-medium text-suzu-neutral-900 truncate">
               {row.original.nameEnglishSpecific}
             </div>
             {row.original.nameJapaneseSpecific && (
-              <div className="text-sm text-gray-500 truncate">
+              <div className="text-sm text-suzu-neutral-700 truncate">
                 {row.original.nameJapaneseSpecific}
               </div>
             )}
@@ -237,7 +237,7 @@ export default function ItemsTable({
       columnHelper.accessor("category", {
         header: "カテゴリー",
         cell: ({ getValue }) => (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-suzu-cream text-suzu-neutral-800">
             {getValue()}
           </span>
         ),
@@ -250,7 +250,7 @@ export default function ItemsTable({
         cell: ({ getValue }) => {
           const quantity = getValue() || 1;
           return (
-            <span className="inline-flex items-center px-2 py-0.5 text-sm font-medium text-gray-900">
+            <span className="inline-flex items-center px-2 py-0.5 text-sm font-medium text-suzu-neutral-900">
               {quantity}
             </span>
           );
@@ -269,7 +269,7 @@ export default function ItemsTable({
               ? "text-green-600"
               : price.confidence >= 0.4
                 ? "text-yellow-600"
-                : "text-red-600";
+                : "text-suzu-error";
           return (
             <div className="text-sm">
               <div className="font-medium">
@@ -322,7 +322,7 @@ export default function ItemsTable({
           return (
             <div className="text-sm">
               <div>{date.toLocaleDateString("ja-JP")}</div>
-              <div className="text-gray-500 text-xs">
+              <div className="text-suzu-neutral-700 text-xs">
                 {date.toLocaleTimeString("ja-JP", {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -376,13 +376,13 @@ export default function ItemsTable({
     enableRowSelection: true,
   });
 
-  const handleRowClick = (row: Row<DeclutterItem>) => {
+  const handleRowClick = (row: Row<SuzuMemoItem>) => {
     onRowClick?.(row.original);
   };
 
   const handleRowKeyDown = (
     event: React.KeyboardEvent,
-    row: Row<DeclutterItem>,
+    row: Row<SuzuMemoItem>,
   ) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -391,7 +391,7 @@ export default function ItemsTable({
   };
 
   // Mobile card component
-  const MobileCard = ({ item }: { item: DeclutterItem }) => {
+  const MobileCard = ({ item }: { item: SuzuMemoItem }) => {
     const imageUrl = imageUrls.get(item.id);
     const config = ACTION_CONFIG[item.recommendedAction];
 
@@ -399,7 +399,7 @@ export default function ItemsTable({
       <div
         role="button"
         tabIndex={0}
-        className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+        className="bg-white border border-suzu-brown-200 rounded-lg p-4 cursor-pointer hover:bg-suzu-cream active:bg-suzu-primary-50 transition-colors touch-manipulation focus:outline-none focus:ring-2 focus:ring-suzu-primary-500 focus:ring-inset"
         onClick={() => onRowClick?.(item)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -411,7 +411,7 @@ export default function ItemsTable({
       >
         <div className="flex space-x-4">
           {/* Thumbnail */}
-          <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+          <div className="w-20 h-20 rounded-lg overflow-hidden bg-suzu-cream flex-shrink-0">
             {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- Blob URLs not supported by Next.js Image
               <img
@@ -420,7 +420,7 @@ export default function ItemsTable({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <div className="w-full h-full flex items-center justify-center text-suzu-neutral-400">
                 <svg
                   className="w-10 h-10"
                   fill="none"
@@ -442,13 +442,13 @@ export default function ItemsTable({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between mb-2">
               <div className="min-w-0 flex-1">
-                <h3 className="text-base font-medium text-gray-900 line-clamp-2 leading-5">
+                <h3 className="text-base font-medium text-suzu-neutral-900 line-clamp-2 leading-5">
                   {item.nameEnglishSpecific ||
                     item.nameJapaneseSpecific ||
                     "商品名未設定"}
                 </h3>
                 {item.nameJapaneseSpecific && item.nameEnglishSpecific && (
-                  <p className="text-sm text-gray-500 line-clamp-1 mt-1">
+                  <p className="text-sm text-suzu-neutral-700 line-clamp-1 mt-1">
                     {item.nameJapaneseSpecific}
                   </p>
                 )}
@@ -468,13 +468,13 @@ export default function ItemsTable({
                     return next;
                   });
                 }}
-                className="rounded border-gray-300 w-5 h-5 flex-shrink-0 mt-1 touch-manipulation"
+                className="rounded border-suzu-brown-300 w-5 h-5 flex-shrink-0 mt-1 touch-manipulation"
               />
             </div>
 
             {/* Category and Date */}
-            <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-              <span className="bg-gray-100 px-2 py-1 rounded-full">
+            <div className="flex items-center justify-between text-xs text-suzu-neutral-700 mb-3">
+              <span className="bg-suzu-cream px-2 py-1 rounded-full">
                 {item.category}
               </span>
               <span>
@@ -494,15 +494,15 @@ export default function ItemsTable({
                   if (action === "online") {
                     displayPrice = item.onlineAuctionPriceJPY;
                     priceLabel = "オンライン";
-                    priceColor = "text-green-700";
+                    priceColor = "text-suzu-success";
                   } else if (action === "thrift") {
                     displayPrice = item.thriftShopPriceJPY;
                     priceLabel = "リサイクル";
-                    priceColor = "text-yellow-700";
+                    priceColor = "text-suzu-brown-700";
                   } else {
                     displayPrice = item.onlineAuctionPriceJPY;
                     priceLabel = "参考価格";
-                    priceColor = "text-gray-700";
+                    priceColor = "text-suzu-neutral-800";
                   }
 
                   return (
@@ -511,7 +511,9 @@ export default function ItemsTable({
                         ¥{displayPrice.low.toLocaleString("ja-JP")} - ¥
                         {displayPrice.high.toLocaleString("ja-JP")}
                       </div>
-                      <div className="text-xs text-gray-500">{priceLabel}</div>
+                      <div className="text-xs text-suzu-neutral-700">
+                        {priceLabel}
+                      </div>
                     </div>
                   );
                 })()}
@@ -533,10 +535,10 @@ export default function ItemsTable({
     return (
       <div className={`space-y-4 ${className}`}>
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-suzu-brown-200 rounded w-1/4 mb-4"></div>
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="h-16 bg-suzu-brown-200 rounded"></div>
             ))}
           </div>
         </div>
@@ -547,10 +549,10 @@ export default function ItemsTable({
   if (error) {
     return (
       <div className={`text-center py-8 ${className}`}>
-        <div className="text-red-600 mb-4">{error}</div>
+        <div className="text-suzu-error mb-4">{error}</div>
         <button
           onClick={loadData}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="px-4 py-2 bg-suzu-primary-500 text-white rounded-lg hover:bg-suzu-primary-600 transition-colors"
         >
           再読み込み
         </button>
@@ -561,11 +563,11 @@ export default function ItemsTable({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Filters and Search */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <div className="bg-white border border-suzu-brown-200 rounded-lg p-4">
         <div className="grid grid-cols-1 gap-4">
           {/* Search */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-suzu-neutral-800 mb-1">
               検索
             </label>
             <input
@@ -573,19 +575,19 @@ export default function ItemsTable({
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               placeholder="商品名や説明で検索"
-              className="w-full px-3 py-3 border border-gray-300 rounded-md text-base text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              className="w-full px-3 py-3 border border-suzu-brown-300 rounded-md text-base text-suzu-neutral-900 placeholder-suzu-neutral-500 focus:ring-2 focus:ring-suzu-primary-500 focus:border-transparent touch-manipulation"
             />
           </div>
 
           {/* Action Filter */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-suzu-neutral-800 mb-1">
               アクション
             </label>
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="w-full px-3 py-3 border border-gray-300 rounded-md text-base text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              className="w-full px-3 py-3 border border-suzu-brown-300 rounded-md text-base text-suzu-neutral-900 placeholder-suzu-neutral-500 focus:ring-2 focus:ring-suzu-primary-500 focus:border-transparent touch-manipulation"
             >
               <option value="">すべて</option>
               {Object.entries(ACTION_CONFIG).map(([value, config]) => (
@@ -598,13 +600,13 @@ export default function ItemsTable({
 
           {/* Category Filter */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-suzu-neutral-800 mb-1">
               カテゴリー
             </label>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-3 py-3 border border-gray-300 rounded-md text-base text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation"
+              className="w-full px-3 py-3 border border-suzu-brown-300 rounded-md text-base text-suzu-neutral-900 placeholder-suzu-neutral-500 focus:ring-2 focus:ring-suzu-primary-500 focus:border-transparent touch-manipulation"
             >
               <option value="">すべて</option>
               {categories.map((category) => (
@@ -617,11 +619,11 @@ export default function ItemsTable({
         </div>
 
         {/* Results count */}
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-gray-500">
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-suzu-neutral-700">
           <div className="text-center sm:text-left">
             {data.length}件の商品
             {Object.keys(rowSelection).length > 0 && (
-              <span className="ml-2 text-blue-600 font-medium">
+              <span className="ml-2 text-suzu-primary-700 font-medium">
                 ({Object.keys(rowSelection).length}件選択中)
               </span>
             )}
@@ -633,7 +635,7 @@ export default function ItemsTable({
                 setActionFilter("");
                 setCategoryFilter("");
               }}
-              className="text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors min-h-[44px] touch-manipulation text-center"
+              className="text-suzu-primary-700 hover:text-suzu-primary-800 px-3 py-2 rounded-lg hover:bg-suzu-primary-50 transition-colors min-h-[44px] touch-manipulation text-center"
             >
               フィルターをクリア
             </button>
@@ -643,9 +645,9 @@ export default function ItemsTable({
 
       {/* Table or Mobile Cards */}
       {data.length === 0 ? (
-        <div className="text-center py-12 bg-white border border-gray-200 rounded-lg">
+        <div className="text-center py-12 bg-white border border-suzu-brown-200 rounded-lg">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-suzu-neutral-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -657,10 +659,10 @@ export default function ItemsTable({
               d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8l-4 4m0 0l-4-4m4 4V3"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">
+          <h3 className="mt-2 text-sm font-medium text-suzu-neutral-900">
             商品がありません
           </h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-suzu-neutral-700">
             商品を追加して始めましょう
           </p>
         </div>
@@ -673,10 +675,10 @@ export default function ItemsTable({
         </div>
       ) : (
         // Desktop Table View
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-white border border-suzu-brown-200 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-suzu-neutral-200">
+              <thead className="bg-suzu-cream">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => {
@@ -687,7 +689,7 @@ export default function ItemsTable({
                         <th
                           key={header.id}
                           scope="col"
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          className="px-4 py-3 text-left text-xs font-medium text-suzu-neutral-800 uppercase tracking-wider cursor-pointer hover:bg-suzu-primary-50"
                           onClick={header.column.getToggleSortingHandler()}
                           style={{ width: header.getSize() }}
                           aria-sort={
@@ -706,8 +708,12 @@ export default function ItemsTable({
                               header.getContext(),
                             )}
                             {{
-                              asc: <span className="text-blue-600">↑</span>,
-                              desc: <span className="text-blue-600">↓</span>,
+                              asc: (
+                                <span className="text-suzu-primary-700">↑</span>
+                              ),
+                              desc: (
+                                <span className="text-suzu-primary-700">↓</span>
+                              ),
                             }[header.column.getIsSorted() as string] ?? null}
                           </div>
                         </th>
@@ -716,13 +722,13 @@ export default function ItemsTable({
                   </tr>
                 ))}
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-suzu-brown-200">
                 {table.getRowModel().rows.map((row) => (
                   <tr
                     key={row.id}
                     role="button"
                     tabIndex={0}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+                    className="hover:bg-suzu-cream cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-suzu-primary-500 focus:ring-inset"
                     onClick={() => handleRowClick(row)}
                     onKeyDown={(e) => handleRowKeyDown(e, row)}
                     aria-label={`${row.original.nameEnglishSpecific || row.original.nameJapaneseSpecific || "商品"} の詳細を表示`}
@@ -754,9 +760,9 @@ export default function ItemsTable({
 
       {/* Pagination */}
       {table.getPageCount() > 1 && (
-        <div className="bg-white border border-gray-200 rounded-lg px-4 py-4">
+        <div className="bg-white border border-suzu-brown-200 rounded-lg px-4 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="text-sm text-gray-500 text-center sm:text-left">
+            <div className="text-sm text-suzu-neutral-700 text-center sm:text-left">
               <span className="block sm:inline">
                 ページ {table.getState().pagination.pageIndex + 1} /{" "}
                 {table.getPageCount()}
@@ -770,14 +776,14 @@ export default function ItemsTable({
               <button
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors min-h-[44px] touch-manipulation flex-1 sm:flex-none"
+                className="px-4 py-2 border border-suzu-brown-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-suzu-cream transition-colors min-h-[44px] touch-manipulation flex-1 sm:flex-none"
               >
                 前へ
               </button>
               <button
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors min-h-[44px] touch-manipulation flex-1 sm:flex-none"
+                className="px-4 py-2 border border-suzu-brown-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-suzu-cream transition-colors min-h-[44px] touch-manipulation flex-1 sm:flex-none"
               >
                 次へ
               </button>

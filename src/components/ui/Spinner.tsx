@@ -3,7 +3,7 @@ import { clsx } from "clsx";
 
 interface SpinnerProps {
   size?: "sm" | "md" | "lg" | "xl";
-  color?: "current" | "blue" | "gray" | "white";
+  color?: "current" | "suzu" | "blue" | "gray" | "white";
   className?: string;
 }
 
@@ -21,8 +21,9 @@ const Spinner: React.FC<SpinnerProps> = ({
 
   const colorClasses = {
     current: "text-current",
+    suzu: "text-suzu-primary-500",
     blue: "text-blue-600",
-    gray: "text-gray-600",
+    gray: "text-suzu-neutral-600",
     white: "text-white",
   };
 

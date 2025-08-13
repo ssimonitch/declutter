@@ -247,8 +247,10 @@ export default function PhotoCapture({
       )}
 
       {/* Quality Toggle */}
-      <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">画質設定</h3>
+      <div className="mb-4 p-4 bg-suzu-neutral-50 rounded-lg">
+        <h3 className="text-sm font-medium text-suzu-neutral-700 mb-3">
+          画質設定
+        </h3>
         <div className="grid grid-cols-2 gap-3">
           <Button
             variant={quality === "standard" ? "primary" : "secondary"}
@@ -272,11 +274,11 @@ export default function PhotoCapture({
       </div>
 
       {/* Main Capture Area */}
-      <div className="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
+      <div className="border-2 border-dashed border-suzu-neutral-300 rounded-lg overflow-hidden">
         {!state.previewUrl ? (
           // Upload Button - Inspired by Mercari design
           <div className="p-6 sm:p-8 text-center">
-            <div className="mx-auto w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mb-4">
+            <div className="mx-auto w-16 h-16 bg-suzu-error rounded-full flex items-center justify-center mb-4">
               <svg
                 className="w-8 h-8 text-white"
                 fill="none"
@@ -297,10 +299,10 @@ export default function PhotoCapture({
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-suzu-neutral-900 mb-2">
               写真を撮影または選択
             </h3>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-suzu-neutral-500 mb-4">
               商品を撮影するか、ギャラリーから写真を選択してください
             </p>
             <div className="space-y-4">
@@ -442,7 +444,7 @@ export default function PhotoCapture({
 
       {/* Help Text */}
       <div className="mt-4 text-center px-2">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-suzu-neutral-700">
           対応形式: JPEG, PNG, WebP (最大10MB)
         </p>
       </div>

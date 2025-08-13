@@ -1,9 +1,9 @@
 import React from "react";
 import { Button, Modal, Spinner } from "@/components/ui";
-import type { DeclutterItem } from "@/lib/types";
+import type { SuzuMemoItem } from "@/lib/types";
 
 interface FormActionsProps {
-  item?: DeclutterItem;
+  item?: SuzuMemoItem;
   isValid: boolean;
   isSubmitting: boolean;
   isDeleting: boolean;
@@ -26,7 +26,7 @@ const FormActions: React.FC<FormActionsProps> = ({
   return (
     <>
       {/* Action Buttons */}
-      <div className="flex flex-col gap-4 pt-6 border-t border-gray-200">
+      <div className="flex flex-col gap-4 pt-6 border-t border-suzu-neutral-200">
         {/* Save Button - Make primary action most prominent */}
         <Button
           type="submit"
@@ -86,7 +86,7 @@ const FormActions: React.FC<FormActionsProps> = ({
         size="md"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-suzu-neutral-500">
             この商品「{item?.nameEnglishSpecific}
             」を削除しますか？この操作は取り消せません。
           </p>

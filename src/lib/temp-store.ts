@@ -50,7 +50,7 @@ class TempStorage extends Dexie {
   tempCaptures!: Table<TempCapture>;
 
   constructor() {
-    super("DeclutterTempDB");
+    super("SuzuMemoTempDB");
 
     this.version(1).stores({
       tempCaptures: "++id, createdAt", // Auto-increment ID, indexed by creation time
@@ -286,7 +286,7 @@ export async function resetTempStorage(): Promise<void> {
 
   try {
     // Delete the existing database
-    await Dexie.delete("DeclutterTempDB");
+    await Dexie.delete("SuzuMemoTempDB");
 
     // Clear the instance
     tempDbInstance = null;

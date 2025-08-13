@@ -28,11 +28,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       "inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation";
 
     const variantClasses = {
-      primary: "bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-500",
+      primary:
+        "bg-suzu-primary-500 text-white hover:bg-suzu-primary-600 focus:ring-suzu-primary-500",
       secondary:
-        "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-blue-500",
-      destructive: "bg-red-500 text-white hover:bg-red-600 focus:ring-red-500",
-      ghost: "text-gray-700 hover:bg-gray-100 focus:ring-blue-500",
+        "bg-suzu-neutral-50 text-suzu-brown-700 border border-suzu-neutral-300 hover:bg-suzu-cream focus:ring-suzu-primary-500",
+      destructive:
+        "bg-suzu-error text-white hover:bg-red-600 focus:ring-suzu-error",
+      ghost:
+        "text-suzu-brown-700 hover:bg-suzu-cream focus:ring-suzu-primary-500",
     };
 
     const sizeClasses = {
