@@ -1,14 +1,17 @@
 import React from "react";
-import { Controller, Control, FieldErrors } from "react-hook-form";
+import { Controller, UseFormReturn } from "react-hook-form";
 import { ACTION_OPTIONS } from "@/lib/constants";
-import type { ItemFormData } from "./types";
+import type { ItemFormInput } from "@/lib/schemas/item.schema";
 
 interface ActionSelectorProps {
-  control: Control<ItemFormData>;
-  errors: FieldErrors<ItemFormData>;
+  form: UseFormReturn<ItemFormInput>;
 }
 
-const ActionSelector: React.FC<ActionSelectorProps> = ({ control, errors }) => {
+const ActionSelector: React.FC<ActionSelectorProps> = ({ form }) => {
+  const {
+    control,
+    formState: { errors },
+  } = form;
   return (
     <div>
       <label className="block text-sm font-medium text-suzu-neutral-700 mb-2">

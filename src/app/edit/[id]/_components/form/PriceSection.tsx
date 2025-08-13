@@ -1,52 +1,27 @@
-import React, { useCallback } from "react";
-import {
-  UseFormSetValue,
-  UseFormWatch,
-  UseFormRegister,
-} from "react-hook-form";
-import type { ItemFormData } from "./types";
+import React from "react";
+import { UseFormReturn, useWatch } from "react-hook-form";
+import type { ItemFormInput } from "@/lib/schemas/item.schema";
 
 interface PriceSectionProps {
-  setValue: UseFormSetValue<ItemFormData>;
-  watch: UseFormWatch<ItemFormData>;
-  register: UseFormRegister<ItemFormData>;
+  form: UseFormReturn<ItemFormInput>;
 }
 
-const PriceSection: React.FC<PriceSectionProps> = ({
-  setValue,
-  watch,
-  register,
-}) => {
-  const watchedOnlinePrice = watch("onlineAuctionPriceJPY");
-  const watchedThriftPrice = watch("thriftShopPriceJPY");
+const PriceSection: React.FC<PriceSectionProps> = ({ form }) => {
+  const {
+    register,
+    formState: { errors },
+  } = form;
 
-  // Helper function to update nested price objects
-  const updatePriceField = useCallback(
-    (
-      priceType: "onlineAuctionPriceJPY" | "thriftShopPriceJPY",
-      field: "low" | "high",
-      value: number,
-    ) => {
-      const currentPrice = watch(priceType) || {
-        low: 0,
-        high: 0,
-        confidence: 0.5,
-      };
-      setValue(
-        priceType,
-        {
-          ...currentPrice,
-          [field]: value,
-        },
-        {
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true,
-        },
-      );
-    },
-    [setValue, watch],
-  );
+  // Use useWatch for selective watching - better performance
+  const onlinePrice = useWatch({
+    control: form.control,
+    name: "onlineAuctionPriceJPY",
+  });
+
+  const thriftPrice = useWatch({
+    control: form.control,
+    name: "thriftShopPriceJPY",
+  });
 
   return (
     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -90,7 +65,7 @@ const PriceSection: React.FC<PriceSectionProps> = ({
 
       <div className="grid grid-cols-1 gap-6">
         {/* Online Auction Pricing */}
-        {watchedOnlinePrice && (
+        {onlinePrice && (
           <div className="bg-white rounded-lg p-4 border border-green-300">
             <h4 className="text-sm font-semibold text-green-800 mb-3 flex items-center">
               💰 オンライン販売価格（メルカリ・ヤフオク等）
@@ -101,67 +76,64 @@ const PriceSection: React.FC<PriceSectionProps> = ({
                   最低価格
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={watchedOnlinePrice?.low ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "");
-                    updatePriceField(
-                      "onlineAuctionPriceJPY",
-                      "low",
-                      value ? parseInt(value) : 0,
-                    );
-                  }}
+                  {...register("onlineAuctionPriceJPY.low", {
+                    valueAsNumber: true,
+                  })}
                   className="w-full px-3 py-3 border border-suzu-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-suzu-neutral-900 font-medium text-base touch-manipulation"
                   placeholder="0"
                 />
+                {errors.onlineAuctionPriceJPY?.low && (
+                  <p className="mt-1 text-xs text-suzu-error">
+                    {errors.onlineAuctionPriceJPY.low.message}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-xs text-suzu-neutral-600 mb-1">
                   最高価格
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={watchedOnlinePrice?.high ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "");
-                    updatePriceField(
-                      "onlineAuctionPriceJPY",
-                      "high",
-                      value ? parseInt(value) : 0,
-                    );
-                  }}
+                  {...register("onlineAuctionPriceJPY.high", {
+                    valueAsNumber: true,
+                  })}
                   className="w-full px-3 py-3 border border-suzu-neutral-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-suzu-neutral-900 font-medium text-base touch-manipulation"
                   placeholder="0"
                 />
+                {errors.onlineAuctionPriceJPY?.high && (
+                  <p className="mt-1 text-xs text-suzu-error">
+                    {errors.onlineAuctionPriceJPY.high.message}
+                  </p>
+                )}
               </div>
             </div>
-            {/* Online Price Confidence */}
-            {watchedOnlinePrice?.confidence !== undefined && (
+
+            {/* Online Price Confidence - Read-only from AI */}
+            {onlinePrice?.confidence !== undefined && (
               <div className="mt-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-green-700">AI信頼度</span>
                   <div className="flex items-center">
                     <span className="text-xs font-semibold text-green-800 mr-2">
-                      {Math.round(watchedOnlinePrice.confidence * 100)}%
+                      {Math.round(onlinePrice.confidence * 100)}%
                     </span>
                     <div className="w-16 h-1 bg-green-200 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-green-600 transition-all duration-300"
                         style={{
-                          width: `${watchedOnlinePrice.confidence * 100}%`,
+                          width: `${onlinePrice.confidence * 100}%`,
                         }}
                       />
                     </div>
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-green-600">
-                  {watchedOnlinePrice.confidence >= 0.8 ? (
+                  {onlinePrice.confidence >= 0.8 ? (
                     <>🟢 高：市場データ豊富</>
-                  ) : watchedOnlinePrice.confidence >= 0.5 ? (
+                  ) : onlinePrice.confidence >= 0.5 ? (
                     <>🟡 中：一部不明</>
                   ) : (
                     <>🔴 低：データ不足</>
@@ -169,15 +141,18 @@ const PriceSection: React.FC<PriceSectionProps> = ({
                 </div>
               </div>
             )}
+            {/* Hidden input to maintain confidence value */}
             <input
               type="hidden"
-              {...register("onlineAuctionPriceJPY.confidence")}
+              {...register("onlineAuctionPriceJPY.confidence", {
+                valueAsNumber: true,
+              })}
             />
           </div>
         )}
 
         {/* Thrift Shop Pricing */}
-        {watchedThriftPrice && (
+        {thriftPrice && (
           <div className="bg-white rounded-lg p-4 border border-yellow-300">
             <h4 className="text-sm font-semibold text-yellow-800 mb-3 flex items-center">
               🏪 リサイクルショップ価格
@@ -188,67 +163,64 @@ const PriceSection: React.FC<PriceSectionProps> = ({
                   最低価格
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={watchedThriftPrice?.low ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "");
-                    updatePriceField(
-                      "thriftShopPriceJPY",
-                      "low",
-                      value ? parseInt(value) : 0,
-                    );
-                  }}
+                  {...register("thriftShopPriceJPY.low", {
+                    valueAsNumber: true,
+                  })}
                   className="w-full px-3 py-3 border border-suzu-neutral-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-suzu-neutral-900 font-medium text-base touch-manipulation"
                   placeholder="0"
                 />
+                {errors.thriftShopPriceJPY?.low && (
+                  <p className="mt-1 text-xs text-suzu-error">
+                    {errors.thriftShopPriceJPY.low.message}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-xs text-suzu-neutral-600 mb-1">
                   最高価格
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={watchedThriftPrice?.high ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "");
-                    updatePriceField(
-                      "thriftShopPriceJPY",
-                      "high",
-                      value ? parseInt(value) : 0,
-                    );
-                  }}
+                  {...register("thriftShopPriceJPY.high", {
+                    valueAsNumber: true,
+                  })}
                   className="w-full px-3 py-3 border border-suzu-neutral-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-suzu-neutral-900 font-medium text-base touch-manipulation"
                   placeholder="0"
                 />
+                {errors.thriftShopPriceJPY?.high && (
+                  <p className="mt-1 text-xs text-suzu-error">
+                    {errors.thriftShopPriceJPY.high.message}
+                  </p>
+                )}
               </div>
             </div>
-            {/* Thrift Price Confidence */}
-            {watchedThriftPrice?.confidence !== undefined && (
+
+            {/* Thrift Price Confidence - Read-only from AI */}
+            {thriftPrice?.confidence !== undefined && (
               <div className="mt-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-yellow-700">AI信頼度</span>
                   <div className="flex items-center">
                     <span className="text-xs font-semibold text-yellow-800 mr-2">
-                      {Math.round(watchedThriftPrice.confidence * 100)}%
+                      {Math.round(thriftPrice.confidence * 100)}%
                     </span>
                     <div className="w-16 h-1 bg-yellow-200 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-yellow-600 transition-all duration-300"
                         style={{
-                          width: `${watchedThriftPrice.confidence * 100}%`,
+                          width: `${thriftPrice.confidence * 100}%`,
                         }}
                       />
                     </div>
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-yellow-600">
-                  {watchedThriftPrice.confidence >= 0.8 ? (
+                  {thriftPrice.confidence >= 0.8 ? (
                     <>🟢 高：市場データ豊富</>
-                  ) : watchedThriftPrice.confidence >= 0.5 ? (
+                  ) : thriftPrice.confidence >= 0.5 ? (
                     <>🟡 中：一部不明</>
                   ) : (
                     <>🔴 低：データ不足</>
@@ -256,15 +228,28 @@ const PriceSection: React.FC<PriceSectionProps> = ({
                 </div>
               </div>
             )}
-            {watchedThriftPrice?.confidence !== undefined && (
-              <input
-                type="hidden"
-                {...register("thriftShopPriceJPY.confidence")}
-              />
-            )}
+            {/* Hidden input to maintain confidence value */}
+            <input
+              type="hidden"
+              {...register("thriftShopPriceJPY.confidence", {
+                valueAsNumber: true,
+              })}
+            />
           </div>
         )}
       </div>
+
+      {/* Error messages for nested price validation */}
+      {errors.onlineAuctionPriceJPY?.message && (
+        <p className="mt-2 text-sm text-suzu-error">
+          {errors.onlineAuctionPriceJPY.message}
+        </p>
+      )}
+      {errors.thriftShopPriceJPY?.message && (
+        <p className="mt-2 text-sm text-suzu-error">
+          {errors.thriftShopPriceJPY.message}
+        </p>
+      )}
     </div>
   );
 };

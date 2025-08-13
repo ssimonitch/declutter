@@ -1,16 +1,16 @@
 import React from "react";
-import { UseFormRegister, FieldErrors } from "react-hook-form";
-import type { ItemFormData } from "./types";
+import { UseFormReturn } from "react-hook-form";
+import type { ItemFormInput } from "@/lib/schemas/item.schema";
 
 interface DescriptionSectionProps {
-  register: UseFormRegister<ItemFormData>;
-  errors: FieldErrors<ItemFormData>;
+  form: UseFormReturn<ItemFormInput>;
 }
 
-const DescriptionSection: React.FC<DescriptionSectionProps> = ({
-  register,
-  errors,
-}) => {
+const DescriptionSection: React.FC<DescriptionSectionProps> = ({ form }) => {
+  const {
+    register,
+    formState: { errors },
+  } = form;
   return (
     <div>
       <label className="block text-sm font-medium text-suzu-neutral-800 mb-1">

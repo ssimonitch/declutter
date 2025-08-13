@@ -1,12 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { addItem, updateItem, deleteItem } from "@/lib/db";
-import { createBlobUrl, revokeBlobUrl } from "@/lib/image-utils";
-import { ACTION_ENUM, CONDITION_ENUM } from "@/lib/constants";
+import React, { useState } from "react";
+import { useWatch } from "react-hook-form";
+import { deleteItem } from "@/lib/db";
+import { useItemForm } from "./hooks/useItemForm";
+import { useBlobPreview } from "./hooks/useBlobPreview";
 import type { SuzuMemoItem } from "@/lib/types";
 import { useCurrentRealmId } from "@/contexts/realm-context";
 import {
@@ -21,98 +19,6 @@ import {
   NotesKeywordsSection,
   FormActions,
 } from "./form";
-
-// Zod schema for form validation
-const itemFormSchema = z.object({
-  photo: z.instanceof(Blob).optional(),
-  thumbnail: z.instanceof(Blob).optional(),
-
-  // Name fields
-  nameJapaneseSpecific: z
-    .string()
-    .max(100, "日本語名（詳細）は100文字以内で入力してください")
-    .optional(),
-  nameEnglishSpecific: z
-    .string()
-    .max(100, "英語名（詳細）は100文字以内で入力してください")
-    .optional(),
-  nameJapaneseGeneric: z
-    .string()
-    .max(100, "日本語名（一般）は100文字以内で入力してください")
-    .optional(),
-  nameEnglishGeneric: z
-    .string()
-    .max(100, "英語名（一般）は100文字以内で入力してください")
-    .optional(),
-
-  description: z
-    .string()
-    .min(1, "説明は必須です")
-    .max(1000, "説明は1000文字以内で入力してください"),
-  category: z.string().min(1, "カテゴリーは必須です"),
-  condition: z.enum(CONDITION_ENUM).describe("商品状態を選択してください"),
-  quantity: z
-    .number()
-    .min(1, "数量は1以上である必要があります")
-    .max(999, "数量は999以下である必要があります")
-    .int("数量は整数である必要があります"),
-
-  // Price fields
-  onlineAuctionPriceJPY: z
-    .object({
-      low: z.number().min(0, "最低価格は0以上である必要があります"),
-      high: z.number().min(0, "最高価格は0以上である必要があります"),
-      confidence: z
-        .number()
-        .min(0)
-        .max(1, "信頼度は0から1の間である必要があります"),
-    })
-    .refine((data) => data.high >= data.low, {
-      message: "最高価格は最低価格以上である必要があります",
-      path: ["high"],
-    })
-    .optional(),
-  thriftShopPriceJPY: z
-    .object({
-      low: z.number().min(0, "最低価格は0以上である必要があります"),
-      high: z.number().min(0, "最高価格は0以上である必要があります"),
-      confidence: z
-        .number()
-        .min(0)
-        .max(1, "信頼度は0から1の間である必要があります"),
-    })
-    .refine((data) => data.high >= data.low, {
-      message: "最高価格は最低価格以上である必要があります",
-      path: ["high"],
-    })
-    .optional(),
-
-  recommendedAction: z
-    .enum(ACTION_ENUM)
-    .describe("推奨アクションを選択してください"),
-  actionRationale: z
-    .string()
-    .min(1, "推奨理由は必須です")
-    .max(500, "理由は500文字以内で入力してください"),
-  marketplaces: z.array(z.string()).default([]),
-  searchQueries: z.array(z.string()).default([]),
-  specialNotes: z
-    .string()
-    .max(500, "特記事項は500文字以内で入力してください")
-    .nullable()
-    .default(null),
-  keywords: z.array(z.string()).default([]),
-
-  // Disposal cost field
-  disposalCostJPY: z
-    .number()
-    .min(0, "処分費用は0以上である必要があります")
-    .nullable()
-    .optional(),
-  municipalityCode: z.string().optional(),
-});
-
-type InferredItemFormData = z.infer<typeof itemFormSchema>;
 
 interface ItemFormProps {
   item?: SuzuMemoItem;
@@ -129,123 +35,43 @@ export default function ItemForm({
   onError,
   className = "",
 }: ItemFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Get current realm ID from context
   const currentRealmId = useCurrentRealmId();
 
-  // Form setup with react-hook-form and Zod
-  const {
-    register,
-    handleSubmit,
-    control,
-    watch,
-    setValue,
-    formState: { errors, isValid },
-  } = useForm<InferredItemFormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(itemFormSchema) as any,
-    mode: "onChange", // Enable validation on change for better UX
-    defaultValues: item
-      ? {
-          photo: item.photo,
-          thumbnail: item.thumbnail,
-          // Name fields
-          nameJapaneseSpecific: item.nameJapaneseSpecific || "",
-          nameEnglishSpecific: item.nameEnglishSpecific || "",
-          nameJapaneseGeneric: item.nameJapaneseGeneric || "",
-          nameEnglishGeneric: item.nameEnglishGeneric || "",
-          description: item.description,
-          category: item.category,
-          condition: item.condition,
-          quantity: item.quantity || 1,
-          // Price fields
-          onlineAuctionPriceJPY: item.onlineAuctionPriceJPY,
-          thriftShopPriceJPY: item.thriftShopPriceJPY,
-          recommendedAction: item.recommendedAction,
-          actionRationale: item.actionRationale || "",
-          marketplaces: item.marketplaces,
-          searchQueries: item.searchQueries,
-          specialNotes: item.specialNotes,
-          keywords: item.keywords,
-          disposalCostJPY: item.disposalCostJPY,
-          municipalityCode: item.municipalityCode,
-        }
-      : undefined,
+  // Use the custom hook for form management
+  const { form, onSubmit, isSubmitting } = useItemForm({
+    item,
+    currentRealmId: currentRealmId || undefined,
+    onSuccess: onSave,
+    onError,
   });
 
-  // Watch form values for conditional rendering
-  const watchedAction = watch("recommendedAction");
-  const watchedRationale = watch("actionRationale");
+  const { handleSubmit, control, formState } = form;
+  const { isValid } = formState;
 
-  // Setup preview URL for photo
-  useEffect(() => {
-    const watchedPhoto = watch("photo");
-    if (watchedPhoto && watchedPhoto instanceof Blob) {
-      const url = createBlobUrl(watchedPhoto);
-      setPreviewUrl(url);
-      return () => {
-        revokeBlobUrl(url);
-      };
-    }
-  }, [watch]);
+  // Use selective watching for conditional rendering
+  const watchedAction = useWatch({
+    control,
+    name: "recommendedAction",
+  });
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        revokeBlobUrl(previewUrl);
-      }
-    };
-  }, [previewUrl]);
+  const watchedRationale = useWatch({
+    control,
+    name: "actionRationale",
+  });
 
-  const onSubmit = async (data: InferredItemFormData) => {
-    if (isSubmitting) return;
+  const watchedPhoto = useWatch({
+    control,
+    name: "photo",
+  });
 
-    setIsSubmitting(true);
-    try {
-      let itemId: string;
+  // Use the blob preview hook for photo URL management
+  const previewUrl = useBlobPreview(watchedPhoto || item?.photo);
 
-      // Ensure we have photo and thumbnail from the item if they're not in the form data
-      const finalData = {
-        ...data,
-        photo: data.photo || item?.photo,
-        thumbnail: data.thumbnail || item?.thumbnail,
-        disposalCostJPY: data.disposalCostJPY || undefined, // Convert null to undefined
-      };
-
-      // Validate that we have required photo/thumbnail
-      if (!finalData.photo || !finalData.thumbnail) {
-        throw new Error(
-          "写真データが見つかりません。もう一度写真を撮影してください。",
-        );
-      }
-
-      if (item && item.id !== "new") {
-        // Update existing item (id exists and is not "new")
-        await updateItem(item.id, finalData);
-        itemId = item.id;
-      } else {
-        // Create new item (no item or id is "new")
-        // Cast is safe because we validated photo/thumbnail exist above
-        itemId = await addItem(
-          finalData as Omit<SuzuMemoItem, "id" | "createdAt" | "updatedAt">,
-          currentRealmId,
-        );
-      }
-
-      onSave(itemId);
-    } catch (error) {
-      console.error("Failed to save item:", error);
-      onError(error instanceof Error ? error.message : "Failed to save item");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+  // Handle item deletion
   const handleDelete = async () => {
     if (!item || isDeleting) return;
 
@@ -261,22 +87,6 @@ export default function ItemForm({
       setIsDeleting(false);
     }
   };
-
-  // Helper function to format array inputs
-  const handleArrayInput = useCallback(
-    (fieldName: keyof InferredItemFormData, value: string) => {
-      const items = value
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setValue(fieldName, items as any, {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-    },
-    [setValue],
-  );
 
   return (
     <div className={`max-w-2xl mx-auto ${className}`}>
@@ -299,22 +109,22 @@ export default function ItemForm({
         )}
 
         {/* Name Fields */}
-        <ItemNamesSection register={register} errors={errors} />
+        <ItemNamesSection form={form} />
 
         {/* Description */}
-        <DescriptionSection register={register} errors={errors} />
+        <DescriptionSection form={form} />
 
         {/* Quantity and Category Row */}
-        <QuantityCategoryRow control={control} errors={errors} />
+        <QuantityCategoryRow form={form} />
 
         {/* Condition */}
-        <ConditionSelector control={control} errors={errors} />
+        <ConditionSelector form={form} />
 
         {/* Price Information */}
-        <PriceSection setValue={setValue} watch={watch} register={register} />
+        <PriceSection form={form} />
 
         {/* Recommended Action */}
-        <ActionSelector control={control} errors={errors} />
+        <ActionSelector form={form} />
 
         {/* Action Rationale - AI Generated (Readonly) */}
         <div>
@@ -349,30 +159,21 @@ export default function ItemForm({
             </div>
           </div>
           {/* Hidden input to maintain form validation */}
-          <input type="hidden" {...register("actionRationale")} />
-          {errors.actionRationale && (
+          <input type="hidden" {...form.register("actionRationale")} />
+          {form.formState.errors.actionRationale && (
             <p className="mt-1 text-sm text-suzu-error">
-              {errors.actionRationale.message}
+              {form.formState.errors.actionRationale.message}
             </p>
           )}
         </div>
 
         {/* Conditional Fields Based on Action */}
-        {watchedAction === "online" && (
-          <OnlineFields item={item} handleArrayInput={handleArrayInput} />
-        )}
+        {watchedAction === "online" && <OnlineFields form={form} />}
 
-        {watchedAction === "trash" && (
-          <TrashFields control={control} errors={errors} />
-        )}
+        {watchedAction === "trash" && <TrashFields form={form} />}
 
         {/* Notes and Keywords */}
-        <NotesKeywordsSection
-          register={register}
-          errors={errors}
-          item={item}
-          handleArrayInput={handleArrayInput}
-        />
+        <NotesKeywordsSection form={form} />
 
         {/* Form Actions */}
         <FormActions

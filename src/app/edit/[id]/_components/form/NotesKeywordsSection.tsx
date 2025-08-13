@@ -1,21 +1,38 @@
 import React from "react";
-import { UseFormRegister, FieldErrors } from "react-hook-form";
-import type { SuzuMemoItem } from "@/lib/types";
-import type { ItemFormData } from "./types";
+import { UseFormReturn, useWatch } from "react-hook-form";
+import type { ItemFormInput } from "@/lib/schemas/item.schema";
 
 interface NotesKeywordsSectionProps {
-  register: UseFormRegister<ItemFormData>;
-  errors: FieldErrors<ItemFormData>;
-  item?: SuzuMemoItem;
-  handleArrayInput: (fieldName: keyof ItemFormData, value: string) => void;
+  form: UseFormReturn<ItemFormInput>;
 }
 
 const NotesKeywordsSection: React.FC<NotesKeywordsSectionProps> = ({
-  register,
-  errors,
-  item,
-  handleArrayInput,
+  form,
 }) => {
+  const {
+    register,
+    setValue,
+    formState: { errors },
+  } = form;
+
+  // Watch keywords field for controlled input
+  const keywords = useWatch({
+    control: form.control,
+    name: "keywords",
+  });
+
+  // Handle keywords array change
+  const handleKeywordsChange = (value: string) => {
+    const items = value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    setValue("keywords", items, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
   return (
     <>
       {/* Enhanced Special Notes */}
@@ -39,18 +56,23 @@ const NotesKeywordsSection: React.FC<NotesKeywordsSectionProps> = ({
         </div>
       </div>
 
-      {/* Keywords */}
+      {/* Keywords - Controlled Input */}
       <div>
         <label className="block text-sm font-medium text-suzu-neutral-700 mb-1">
           検索用キーワード
         </label>
         <input
           type="text"
-          onChange={(e) => handleArrayInput("keywords", e.target.value)}
-          defaultValue={item?.keywords?.join(", ") || ""}
+          value={keywords?.join(", ") || ""}
+          onChange={(e) => handleKeywordsChange(e.target.value)}
           className="w-full px-3 py-3 border border-suzu-neutral-300 rounded-lg focus:ring-2 focus:ring-suzu-primary-500 focus:border-transparent text-suzu-neutral-900 text-base touch-manipulation"
           placeholder="内部検索用キーワード (カンマ区切り)"
         />
+        {errors.keywords && (
+          <p className="mt-1 text-sm text-suzu-error">
+            {errors.keywords.message}
+          </p>
+        )}
       </div>
     </>
   );

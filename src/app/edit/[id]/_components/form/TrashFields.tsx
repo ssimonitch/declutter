@@ -1,13 +1,17 @@
 import React from "react";
-import { Controller, Control, FieldErrors } from "react-hook-form";
-import type { ItemFormData } from "./types";
+import { UseFormReturn } from "react-hook-form";
+import type { ItemFormInput } from "@/lib/schemas/item.schema";
 
 interface TrashFieldsProps {
-  control: Control<ItemFormData>;
-  errors: FieldErrors<ItemFormData>;
+  form: UseFormReturn<ItemFormInput>;
 }
 
-const TrashFields: React.FC<TrashFieldsProps> = ({ control, errors }) => {
+const TrashFields: React.FC<TrashFieldsProps> = ({ form }) => {
+  const {
+    register,
+    formState: { errors },
+  } = form;
+
   return (
     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
       <h3 className="text-sm font-medium text-red-900 mb-3 flex items-center">
@@ -18,26 +22,16 @@ const TrashFields: React.FC<TrashFieldsProps> = ({ control, errors }) => {
           <label className="block text-sm font-medium text-suzu-neutral-700 mb-1">
             処分費用 (JPY)
           </label>
-          <Controller
-            name="disposalCostJPY"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="number"
-                min="0"
-                step="100"
-                value={field.value || ""}
-                onChange={(e) => {
-                  const value = e.target.value
-                    ? parseInt(e.target.value)
-                    : null;
-                  field.onChange(value);
-                }}
-                className="w-full px-3 py-3 border border-suzu-neutral-300 rounded-lg focus:ring-2 focus:ring-suzu-error focus:border-transparent text-suzu-neutral-900 font-medium text-base touch-manipulation"
-                placeholder="粗大ごみ処分費用（分からない場合は空欄）"
-              />
-            )}
+          <input
+            {...register("disposalCostJPY", {
+              valueAsNumber: true,
+              setValueAs: (v) => (v === "" || isNaN(v) ? null : Number(v)),
+            })}
+            type="number"
+            min="0"
+            step="100"
+            className="w-full px-3 py-3 border border-suzu-neutral-300 rounded-lg focus:ring-2 focus:ring-suzu-error focus:border-transparent text-suzu-neutral-900 font-medium text-base touch-manipulation"
+            placeholder="粗大ごみ処分費用（分からない場合は空欄）"
           />
           {errors.disposalCostJPY && (
             <p className="mt-1 text-sm text-suzu-error">

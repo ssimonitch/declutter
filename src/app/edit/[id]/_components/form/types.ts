@@ -1,37 +1,10 @@
-// Shared types for item form subcomponents
+// Re-export types from the schema for backward compatibility
+// All types are now derived from the single source of truth schema
+export type { ItemFormData } from "@/lib/schemas/item.schema";
+
+// Helper type for price data structure
 export interface PriceData {
   low: number;
   high: number;
   confidence: number;
-}
-
-export interface ItemFormData {
-  photo?: Blob;
-  thumbnail?: Blob;
-
-  // Name fields
-  nameJapaneseSpecific?: string;
-  nameEnglishSpecific?: string;
-  nameJapaneseGeneric?: string;
-  nameEnglishGeneric?: string;
-
-  description: string;
-  category: string;
-  condition: "new" | "like_new" | "good" | "fair" | "poor";
-  quantity: number;
-
-  // Price fields
-  onlineAuctionPriceJPY?: PriceData;
-  thriftShopPriceJPY?: PriceData;
-
-  recommendedAction: "keep" | "trash" | "thrift" | "online" | "donate";
-  actionRationale: string;
-  marketplaces: string[];
-  searchQueries: string[];
-  specialNotes: string | null;
-  keywords: string[];
-
-  // Disposal cost field
-  disposalCostJPY?: number | null;
-  municipalityCode?: string;
 }
