@@ -221,6 +221,15 @@ export async function inviteMember(
         name: request.name,
         email: request.email,
         invite: true,
+        // Grant write permissions to the invited member
+        // This allows them to add, update, and delete items in the realm
+        permissions: {
+          add: ["items"], // Can add items
+          update: {
+            items: ["*"], // Can update all properties of items
+          },
+          manage: ["items"], // Can manage items (includes delete)
+        },
       });
 
       return newInviteId;
@@ -510,6 +519,20 @@ export async function addItem(
     return id as string;
   } catch (error) {
     console.error("Error adding item:", error);
+
+    // Check if it's a permission error
+    if (error instanceof Error) {
+      if (
+        error.message.includes("permission") ||
+        error.message.includes("denied") ||
+        error.message.includes("unauthorized")
+      ) {
+        throw new Error(
+          "権限エラー: このグループにアイテムを追加する権限がありません。グループの所有者に権限の付与を依頼してください。",
+        );
+      }
+    }
+
     throw new Error("Failed to add item to database");
   }
 }
@@ -558,6 +581,20 @@ export async function updateItem(
     }
   } catch (error) {
     console.error("Error updating item:", error);
+
+    // Check if it's a permission error
+    if (error instanceof Error) {
+      if (
+        error.message.includes("permission") ||
+        error.message.includes("denied") ||
+        error.message.includes("unauthorized")
+      ) {
+        throw new Error(
+          "権限エラー: このアイテムを更新する権限がありません。グループの所有者に権限の付与を依頼してください。",
+        );
+      }
+    }
+
     throw new Error("Failed to update item");
   }
 }

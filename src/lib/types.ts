@@ -151,6 +151,15 @@ export interface SuzuMemoMember {
   accepted?: Date; // Acceptance timestamp (system-managed)
   rejected?: Date; // Rejection timestamp (system-managed)
   roles?: string[]; // Array of role names ["owner"] or ["member"]
+  permissions?: {
+    add?: string[] | "*"; // Tables the member can add to
+    update?:
+      | {
+          [table: string]: string[] | "*"; // Properties the member can update
+        }
+      | "*";
+    manage?: string[] | "*"; // Tables the member can manage (includes delete)
+  };
 }
 
 // Helper types for realm operations

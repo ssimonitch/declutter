@@ -349,6 +349,18 @@ export default function FamilySharing({
                                   オーナー
                                 </span>
                               )}
+                              {!member.roles?.includes("owner") &&
+                                member.permissions && (
+                                  <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">
+                                    編集可
+                                  </span>
+                                )}
+                              {!member.roles?.includes("owner") &&
+                                !member.permissions && (
+                                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+                                    読み取り専用
+                                  </span>
+                                )}
                             </div>
                             {member.email && (
                               <div className="text-sm text-suzu-neutral-700 truncate max-w-full">
