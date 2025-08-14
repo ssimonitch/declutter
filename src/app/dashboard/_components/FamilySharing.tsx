@@ -39,6 +39,10 @@ export default function FamilySharing({
   const db = useMemo(() => getDb(), []);
   const cloudInvites = useObservable(db.cloud?.invites);
 
+  // Check if Dexie Cloud is disabled
+  const isDexieCloudDisabled =
+    process.env.NEXT_PUBLIC_DISABLE_DEXIE_CLOUD === "true";
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -158,6 +162,30 @@ export default function FamilySharing({
       setError(err instanceof Error ? err.message : "Failed to remove member");
     }
   };
+
+  // If Dexie Cloud is disabled, show a simple message
+  if (isDexieCloudDisabled) {
+    return (
+      <div
+        className={`bg-white rounded-lg shadow p-4 sm:p-6 ${className || ""}`}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-suzu-neutral-900">
+              ファミリー共有
+            </h2>
+            <p className="text-sm text-suzu-neutral-700 mt-1">
+              Dexie
+              Cloudが無効になっているため、ファミリー共有機能は利用できません
+            </p>
+          </div>
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-suzu-neutral-100 text-suzu-neutral-700">
+            ローカルモード
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || contextLoading) {
     return (

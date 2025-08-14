@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import DashboardSummary from "@/app/dashboard/_components/DashboardSummary";
 import ItemsTable from "@/app/dashboard/_components/ItemsTable";
 import FamilySharing from "@/app/dashboard/_components/FamilySharing";
+import SyncStatus from "@/components/SyncStatus";
 import Alert from "@/components/ui/Alert";
 import { listItems } from "@/lib/db";
 import { generateCSVContent, createCSVBlob, downloadCSV } from "@/utils/export";
@@ -76,13 +77,16 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-6">
           <div className="bg-white rounded-lg p-4 sm:p-6 border border-suzu-brown-200">
-            <div className="mb-4">
-              <h1 className="text-2xl sm:text-3xl font-bold text-suzu-brown-700 mb-2">
-                ダッシュボード
-              </h1>
-              <p className="text-suzu-brown-600">
-                登録した商品の概要と詳細を確認できます
-              </p>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-suzu-brown-700 mb-2">
+                  ダッシュボード
+                </h1>
+                <p className="text-suzu-brown-600">
+                  登録した商品の概要と詳細を確認できます
+                </p>
+              </div>
+              <SyncStatus className="ml-4" />
             </div>
 
             {/* Action Buttons */}

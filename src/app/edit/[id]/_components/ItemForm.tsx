@@ -42,9 +42,13 @@ export default function ItemForm({
   const currentRealmId = useCurrentRealmId();
 
   // Use the custom hook for form management
+  // For new items, prefer the realmId from the item (preserved from capture)
+  // For existing items, use the item's existing realmId
+  const effectiveRealmId = item?.realmId || currentRealmId || undefined;
+
   const { form, onSubmit, isSubmitting } = useItemForm({
     item,
-    currentRealmId: currentRealmId || undefined,
+    currentRealmId: effectiveRealmId,
     onSuccess: onSave,
     onError,
   });

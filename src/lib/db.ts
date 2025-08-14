@@ -37,6 +37,10 @@ const isTestEnvironment =
   process.env.VITEST === "true" ||
   process.env.CI === "true";
 
+// Allow disabling Dexie Cloud via environment variable for testing
+const isDexieCloudDisabled =
+  process.env.NEXT_PUBLIC_DISABLE_DEXIE_CLOUD === "true";
+
 const cloudDatabaseUrl = process.env.NEXT_PUBLIC_DEXIE_CLOUD_DATABASE_URL;
 
 /**
@@ -51,16 +55,26 @@ export function getDb(): SuzuMemoDatabase {
 
     dbInstance = new SuzuMemoDatabase();
 
-    // Only configure cloud if it's available, environment variable is set, and not in test
-    if (cloudDatabaseUrl && dbInstance.cloud && !isTestEnvironment) {
+    // Only configure cloud if it's available, environment variable is set, not disabled, and not in test
+    if (
+      cloudDatabaseUrl &&
+      dbInstance.cloud &&
+      !isTestEnvironment &&
+      !isDexieCloudDisabled
+    ) {
       try {
         dbInstance.cloud.configure({
           databaseUrl: cloudDatabaseUrl,
           requireAuth: true, // TODO: implement custom auth after testing other features
         });
+        console.log("Dexie Cloud configured successfully");
       } catch (error) {
         console.warn("Failed to configure Dexie Cloud:", error);
       }
+    } else if (isDexieCloudDisabled) {
+      console.log(
+        "Dexie Cloud is disabled via NEXT_PUBLIC_DISABLE_DEXIE_CLOUD environment variable",
+      );
     }
   }
   return dbInstance;
@@ -463,6 +477,8 @@ export async function addItem(
 ): Promise<string> {
   try {
     const now = new Date().toISOString();
+    const db = getDb();
+
     // Use the explicit realmId parameter or item's existing realmId
     const effectiveRealmId =
       realmId !== undefined ? realmId : item.realmId || undefined;
@@ -477,7 +493,20 @@ export async function addItem(
     };
 
     // Dexie will auto-generate the ID and return it
-    const id = await getDb().items.add(newItem as SuzuMemoItem);
+    const id = await db.items.add(newItem as SuzuMemoItem);
+
+    // Explicitly sync to ensure the item is persisted to the cloud
+    if (db.cloud && !isDexieCloudDisabled) {
+      try {
+        console.log("Syncing new item to cloud...");
+        await db.cloud.sync();
+        console.log("Item synced successfully");
+      } catch (syncError) {
+        console.warn("Failed to sync item to cloud:", syncError);
+        // Don't throw here - item is saved locally, sync will retry automatically
+      }
+    }
+
     return id as string;
   } catch (error) {
     console.error("Error adding item:", error);
@@ -493,6 +522,8 @@ export async function updateItem(
   updates: Partial<SuzuMemoItem>,
 ): Promise<void> {
   try {
+    const db = getDb();
+
     // Sanitize updates to prevent overwriting immutable fields
     const {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -509,9 +540,21 @@ export async function updateItem(
       updatedAt: new Date().toISOString(),
     };
 
-    const updated = await getDb().items.update(id, updateData);
+    const updated = await db.items.update(id, updateData);
     if (updated === 0) {
       throw new Error("Item not found");
+    }
+
+    // Explicitly sync to ensure the update is persisted to the cloud
+    if (db.cloud && !isDexieCloudDisabled) {
+      try {
+        console.log("Syncing updated item to cloud...");
+        await db.cloud.sync();
+        console.log("Item update synced successfully");
+      } catch (syncError) {
+        console.warn("Failed to sync item update to cloud:", syncError);
+        // Don't throw here - item is saved locally, sync will retry automatically
+      }
     }
   } catch (error) {
     console.error("Error updating item:", error);
