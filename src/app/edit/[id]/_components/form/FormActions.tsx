@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Modal, Spinner } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
 import type { SuzuMemoItem } from "@/lib/types";
 
 interface FormActionsProps {
@@ -36,16 +36,13 @@ const FormActions: React.FC<FormActionsProps> = ({
           disabled={!isValid || isSubmitting || isDeleting}
           className="w-full"
         >
-          {isSubmitting ? (
-            <>
-              <Spinner size="sm" color="white" className="mr-3" />
-              {item ? "更新中..." : "保存中..."}
-            </>
-          ) : item && item.id !== "new" ? (
-            "更新"
-          ) : (
-            "保存"
-          )}
+          {isSubmitting
+            ? item
+              ? "更新中..."
+              : "保存中..."
+            : item && item.id !== "new"
+              ? "更新"
+              : "保存"}
         </Button>
 
         {/* Secondary actions */}
