@@ -135,6 +135,17 @@ export default function FamilySharing({
     try {
       // Use Dexie Cloud's built-in accept method
       await invite.accept();
+
+      // Trigger explicit sync to ensure latest realm membership is fetched
+      if (db.cloud && !isDexieCloudDisabled) {
+        try {
+          await db.cloud.sync();
+        } catch (syncError) {
+          console.warn("Failed to sync after accepting invitation:", syncError);
+        }
+      }
+
+      // Reload realms data to show the newly joined realm
       await loadData();
     } catch (err) {
       setError(
