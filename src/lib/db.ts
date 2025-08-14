@@ -532,6 +532,21 @@ export async function deleteItem(id: string): Promise<void> {
 }
 
 /**
+ * Delete multiple items by IDs
+ */
+export async function deleteItems(ids: string[]): Promise<void> {
+  try {
+    if (ids.length === 0) return;
+
+    // Use bulkDelete for better performance
+    await getDb().items.bulkDelete(ids);
+  } catch (error) {
+    console.error("Error deleting items:", error);
+    throw new Error("Failed to delete items");
+  }
+}
+
+/**
  * Get single item by ID
  */
 export async function getItem(id: string): Promise<SuzuMemoItem | undefined> {

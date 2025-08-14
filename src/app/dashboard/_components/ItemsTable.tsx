@@ -18,10 +18,12 @@ import {
   searchItems,
   filterItemsByAction,
   filterItemsByCategory,
+  deleteItems,
 } from "@/lib/db";
 import { createBlobUrl, revokeBlobUrl } from "@/lib/image-utils";
 import { ACTION_CONFIG } from "@/lib/constants";
 import { useCurrentRealmId } from "@/contexts/realm-context";
+import Modal from "@/components/ui/Modal";
 import type { SuzuMemoItem } from "@/lib/types";
 
 interface ItemsTableProps {
@@ -56,6 +58,10 @@ export default function ItemsTable({
   // Filters state
   const [actionFilter, setActionFilter] = useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
+
+  // Delete state
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Check for mobile view
   useEffect(() => {
@@ -391,6 +397,25 @@ export default function ItemsTable({
     }
   };
 
+  const handleDeleteSelected = async () => {
+    const selectedIds = Object.keys(rowSelection);
+    if (selectedIds.length === 0) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteItems(selectedIds);
+      setRowSelection({});
+      setShowDeleteConfirm(false);
+      // Reload data after deletion
+      await loadData();
+    } catch (err) {
+      console.error("Failed to delete items:", err);
+      setError(err instanceof Error ? err.message : "Failed to delete items");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Mobile card component
   const MobileCard = ({ item }: { item: SuzuMemoItem }) => {
     const imageUrl = imageUrls.get(item.id);
@@ -619,7 +644,7 @@ export default function ItemsTable({
           </div>
         </div>
 
-        {/* Results count */}
+        {/* Results count and actions */}
         <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-suzu-neutral-700">
           <div className="text-center sm:text-left">
             {data.length}件の商品
@@ -629,18 +654,28 @@ export default function ItemsTable({
               </span>
             )}
           </div>
-          {(globalFilter || actionFilter || categoryFilter) && (
-            <button
-              onClick={() => {
-                setGlobalFilter("");
-                setActionFilter("");
-                setCategoryFilter("");
-              }}
-              className="text-suzu-primary-700 hover:text-suzu-primary-800 px-3 py-2 rounded-lg hover:bg-suzu-primary-50 transition-colors min-h-[44px] touch-manipulation text-center"
-            >
-              フィルターをクリア
-            </button>
-          )}
+          <div className="flex flex-col sm:flex-row gap-2">
+            {Object.keys(rowSelection).length > 0 && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="bg-suzu-error text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors min-h-[44px] touch-manipulation"
+              >
+                選択した項目を削除 ({Object.keys(rowSelection).length})
+              </button>
+            )}
+            {(globalFilter || actionFilter || categoryFilter) && (
+              <button
+                onClick={() => {
+                  setGlobalFilter("");
+                  setActionFilter("");
+                  setCategoryFilter("");
+                }}
+                className="text-suzu-primary-700 hover:text-suzu-primary-800 px-3 py-2 rounded-lg hover:bg-suzu-primary-50 transition-colors min-h-[44px] touch-manipulation text-center"
+              >
+                フィルターをクリア
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -792,6 +827,40 @@ export default function ItemsTable({
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title="選択した項目を削除"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-suzu-neutral-700">
+            選択した{Object.keys(rowSelection).length}
+            件の項目を削除してもよろしいですか？
+          </p>
+          <p className="text-sm text-suzu-error">
+            この操作は取り消すことができません。
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={handleDeleteSelected}
+              disabled={isDeleting}
+              className="flex-1 bg-suzu-error text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+            >
+              {isDeleting ? "削除中..." : "削除する"}
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeleting}
+              className="flex-1 bg-suzu-brown-300 text-suzu-brown-700 py-2 rounded-lg hover:bg-suzu-brown-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

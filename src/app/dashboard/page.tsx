@@ -176,13 +176,6 @@ export default function DashboardPage() {
           onRealmChange={() => setRefreshTrigger((v) => v + 1)}
         />
 
-        {/* Dashboard Summary */}
-        <DashboardSummary
-          refreshTrigger={refreshTrigger}
-          onError={setError}
-          className="mb-8"
-        />
-
         {/* Items Table */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-suzu-brown-200">
@@ -201,6 +194,13 @@ export default function DashboardPage() {
             />
           </div>
         </div>
+
+        {/* Dashboard Summary */}
+        <DashboardSummary
+          refreshTrigger={refreshTrigger}
+          onError={setError}
+          className="mb-8 mt-8"
+        />
       </div>
     </div>
   );
